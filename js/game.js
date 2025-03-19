@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Zoom and pan settings
     view: {
       zoom: 1,           // Initial zoom level
-      minZoom: 0.5,      // Minimum zoom level
+      minZoom: 0.2,      // Minimum zoom level
       maxZoom: 3,        // Maximum zoom level
       zoomStep: 0.1,     // Zoom step size
       panX: 0,           // Initial pan X offset
@@ -100,40 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Rendering functions
   function renderBackground() {
     backgroundTwo.clear();
-    
-    // Get the current brightness factor
+  
     const brightness = config.colors.background.brightness;
-    
-    // Apply brightness to base colors
-    const topColor = adjustBrightness(config.colors.background.top, brightness);
-    const bottomColor = adjustBrightness(config.colors.background.bottom, brightness);
-
-    // Using a different approach with rectangle shape for more reliable gradient rendering
-    const bgHeight = backgroundTwo.height;
-    const bgWidth = backgroundTwo.width;
-    
-    // Create a full-screen rectangle with the gradient
-    // This approach is more direct and should ensure the gradient is fully visible
+    const bgColor = adjustBrightness(config.colors.background.top, brightness);
+  
     const bgRect = backgroundTwo.makeRectangle(
-      bgWidth / 2, 
-      bgHeight / 2, 
-      bgWidth, 
-      bgHeight
+      backgroundTwo.width / 2,
+      backgroundTwo.height / 2,
+      backgroundTwo.width,
+      backgroundTwo.height
     );
-    
-    // Create a vertical gradient from bottom to top
-    const gradient = backgroundTwo.makeLinearGradient(
-      bgWidth / 2, 0,          // x1, y1 (top center)
-      bgWidth / 2, bgHeight,   // x2, y2 (bottom center)
-      new Two.Stop(0.0, topColor),        // Yellow at top
-      new Two.Stop(0.6, topColor),        // Yellow through 60% of the gradient
-      new Two.Stop(0.8, bottomColor),     // Start transition to green
-      new Two.Stop(1.0, bottomColor)      // Full green at bottom
-    );
-    
-    bgRect.fill = gradient;
+  
+    bgRect.fill = bgColor;
     bgRect.noStroke();
-    
+  
     backgroundTwo.update();
   }
   
@@ -420,12 +400,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calculate the boundaries for zoom
     const gridWidthPixels = config.gridWidth * config.cellSize;
     const gridHeightPixels = config.gridHeight * config.cellSize;
-    
+  
     // Calculate the minimum zoom level to keep the grid within the boundaries
-    const minZoomX = gameCanvas.width / gridWidthPixels;
-    const minZoomY = gameCanvas.height / gridHeightPixels;
+    const minZoomX = (gameCanvas.width + 40 * config.cellSize) / gridWidthPixels;
+    const minZoomY = (gameCanvas.height + 13 * config.cellSize) / gridHeightPixels;
     const minZoom = Math.max(config.view.minZoom, Math.max(minZoomX, minZoomY));
-    
+  
     // Apply new zoom
     newZoom = Math.max(minZoom, newZoom);
     
@@ -521,52 +501,52 @@ document.addEventListener('DOMContentLoaded', () => {
         config.view.minZoom, 
         Math.min(config.view.maxZoom, initialZoom * zoomRatio)
       );
-      
+    
       // Calculate the boundaries for zoom
       const gridWidthPixels = config.gridWidth * config.cellSize;
       const gridHeightPixels = config.gridHeight * config.cellSize;
-      
+    
       // Calculate the minimum zoom level to keep the grid within the boundaries
-      const minZoomX = gameCanvas.width / gridWidthPixels;
-      const minZoomY = gameCanvas.height / gridHeightPixels;
+      const minZoomX = (gameCanvas.width + 40 * config.cellSize) / gridWidthPixels;
+      const minZoomY = (gameCanvas.height + 13 * config.cellSize) / gridHeightPixels;
       const minZoom = Math.max(config.view.minZoom, Math.max(minZoomX, minZoomY));
-      
+    
       // Apply new zoom
       newZoom = Math.max(minZoom, newZoom);
-      
+    
       // Calculate the zoom point in world coordinates before zoom
       const worldX = (mouseX - gridOffsetX - config.view.panX) / config.view.zoom;
       const worldY = (mouseY - gridOffsetY - config.view.panY) / config.view.zoom;
-      
+    
       // Apply new zoom
       config.view.zoom = newZoom;
-      
+    
       // Calculate the new pan values to keep the zoom centered on pinch center
       config.view.panX = mouseX - gridOffsetX - (worldX * newZoom);
       config.view.panY = mouseY - gridOffsetY - (worldY * newZoom);
-      
+    
       // Calculate the boundaries for panning
       const zoomNew = config.view.zoom;
       const gridWidthPixelsNew = config.gridWidth * config.cellSize * zoomNew;
       const gridHeightPixelsNew = config.gridHeight * config.cellSize * zoomNew;
-      
+    
       // Allow panning 3 grid sizes below the tower
       const belowTowerPadding = 3 * config.cellSize * zoomNew;
-      
+    
       // Allow panning 10 grid sizes above the tower
       const aboveTowerPadding = 10 * config.cellSize * zoomNew;
-      
+    
       const sidePadding = 20 * config.cellSize * zoomNew;
-      
+    
       const minPanX = -gridWidthPixelsNew + gameCanvas.width - gridOffsetX - sidePadding;
       const maxPanX = -gridOffsetX + sidePadding;
       const minPanY = -gridHeightPixelsNew + gameCanvas.height - gridOffsetY - belowTowerPadding;
       const maxPanY = -gridOffsetY + aboveTowerPadding;
-      
+    
       // Clamp pan values to keep the grid within the boundaries
       config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
       config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
-      
+    
       // Redraw
       renderGame();
       

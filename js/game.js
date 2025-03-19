@@ -125,12 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const gradient = backgroundTwo.makeLinearGradient(
       bgWidth / 2, 0,          // x1, y1 (top center)
       bgWidth / 2, bgHeight,   // x2, y2 (bottom center)
-      [
-        new Two.Stop(0.0, topColor),        // Yellow at top
-        new Two.Stop(0.6, topColor),        // Yellow through 60% of the gradient
-        new Two.Stop(0.8, bottomColor),     // Start transition to green
-        new Two.Stop(1.0, bottomColor)      // Full green at bottom
-      ]
+      new Two.Stop(0.0, topColor),        // Yellow at top
+      new Two.Stop(0.6, topColor),        // Yellow through 60% of the gradient
+      new Two.Stop(0.8, bottomColor),     // Start transition to green
+      new Two.Stop(1.0, bottomColor)      // Full green at bottom
     );
     
     bgRect.fill = gradient;

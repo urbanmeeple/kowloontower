@@ -6,6 +6,9 @@ $user = 'your_db_user';
 $pass = 'your_db_password';
 $charset = 'utf8mb4';
 
+// Secret key for API authorization
+$secret_key = 'YOUR_SECRET_KEY'; // Replace with a strong, unique key
+
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
   PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

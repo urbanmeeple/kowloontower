@@ -371,8 +371,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Allow panning 10 grid sizes above the tower
     const aboveTowerPadding = 10 * config.cellSize * zoom;
     
-    const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX;
-    const maxPanX = -gridOffsetX;
+    // Allow panning 20 grid sizes to the left and right of the tower
+    const sidePadding = 20 * config.cellSize * zoom;
+    
+    const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
+    const maxPanX = -gridOffsetX + sidePadding;
     const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
     const maxPanY = -gridOffsetY + aboveTowerPadding;
     

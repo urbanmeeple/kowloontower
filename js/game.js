@@ -64,8 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let gridOffsetY = 0;
   
   function updateGridOffset() {
+    // Center horizontally
     gridOffsetX = (gameTwo.width - (config.gridWidth * config.cellSize)) / 2;
-    gridOffsetY = (gameTwo.height - (config.gridHeight * config.cellSize)) / 2;
+    
+    // Position vertically so the bottom of the grid is at the bottom of the screen
+    // with a small margin
+    const bottomMargin = 50; // pixels from bottom of screen
+    gridOffsetY = gameTwo.height - (config.gridHeight * config.cellSize) - bottomMargin;
+    
+    // Ensure gridOffsetY is never negative (which would push the grid off-screen)
+    gridOffsetY = Math.max(10, gridOffsetY);
   }
 
   // Initialize the grid offset
@@ -82,12 +90,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const topColor = adjustBrightness(config.colors.background.top, brightness);
     const bottomColor = adjustBrightness(config.colors.background.bottom, brightness);
     
-    // Create gradient background from top (yellow) to bottom (green)
+    // Calculate the position where the green area should start
+    // Green starts at the bottom of the grid and covers 30% upward
+    const greenStartY = gridOffsetY + config.gridHeight * config.cellSize;
+    const greenEndY = greenStartY - (config.gridHeight * config.cellSize * 0.3);
+    
+    // Create gradient background aligned with the grid
     const gradient = backgroundTwo.makeLinearGradient(
-      0, 0,                        // x1, y1 (top)
-      0, backgroundTwo.height,     // x2, y2 (bottom)
-      new Two.Stop(0, topColor),   // Yellow at top
-      new Two.Stop(1, bottomColor) // Green at bottom
+      0, gridOffsetY,  // x1, y1 (top of grid)
+      0, greenStartY,  // x2, y2 (bottom of grid)
+      new Two.Stop(0, topColor),       // Yellow at top
+      new Two.Stop(0.7, topColor),     // Yellow still at 70% down
+      new Two.Stop(1, bottomColor)     // Green at bottom
     );
     
     const background = backgroundTwo.makeRectangle(

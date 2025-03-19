@@ -434,259 +434,80 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGame();
   }
   
-  // Handle pinch-to-zoom on mobile - simplified to be more robust
-  let initialDistance = 0;
-  let initialZoom = 1;
-  let initialPanX = 0;
-  let initialPanY = 0;
-  let isZooming = false;
-  
+  // Remove/replace previous mobile touch implementation with this simplified version:
+
+  let touchInitialDistance = 0;
+  let touchInitialZoom = 1;
+  let touchInitialPanX = 0;
+  let touchInitialPanY = 0;
+  let lastTouchCenter = { x: 0, y: 0 };
+
   function handleTouchStart(event) {
     if (event.touches.length === 2) {
-      // Prevent default to avoid browser behaviors
       event.preventDefault();
-      
-      // Two finger touch - setup for pinch zoom
+      // Two-finger gesture: store initial distance and center
       const touch1 = event.touches[0];
       const touch2 = event.touches[1];
-      
-      // Calculate initial distance for pinch zoom
-      initialDistance = Math.hypot(
+      touchInitialDistance = Math.hypot(
         touch2.clientX - touch1.clientX,
         touch2.clientY - touch1.clientY
       );
-      
-      // Store current view state
-      initialZoom = config.view.zoom;
-      initialPanX = config.view.panX;
-      initialPanY = config.view.panY;
-      
-      // Set center for pan calculation
-      config.view.lastX = (touch1.clientX + touch2.clientX) / 2;
-      config.view.lastY = (touch1.clientY + touch2.clientY) / 2;
-      
-      isZooming = true;
-      config.view.isPanning = false;
-    } 
-    else if (event.touches.length === 1) {
-      // Single finger - could be a tap or pan
+      touchInitialZoom = config.view.zoom;
+      touchInitialPanX = config.view.panX;
+      touchInitialPanY = config.view.panY;
+      lastTouchCenter = {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2
+      };
+    } else if (event.touches.length === 1) {
+      // Single-finger: record starting point for panning/tap
       config.view.lastX = event.touches[0].clientX;
       config.view.lastY = event.touches[0].clientY;
-      
-      // Will be set to true if the touch moves significantly
-      config.view.isPanning = false;
-      isZooming = false;
     }
   }
-  
+
   function handleTouchMove(event) {
-    // Always prevent default to stop browser behaviors
     event.preventDefault();
-    
-    if (event.touches.length === 2 && isZooming) {
-      // Two-finger pinch zoom/pan
+    if (event.touches.length === 2) {
+      // Two-finger pinch-zoom and pan
       const touch1 = event.touches[0];
       const touch2 = event.touches[1];
-      
-      try {
-        // Calculate current center point between touches
-        const centerX = (touch1.clientX + touch2.clientX) / 2;
-        const centerY = (touch1.clientY + touch2.clientY) / 2;
-        
-        // Get relative position to canvas
-        const rect = gameCanvas.getBoundingClientRect();
-        const canvasCenterX = centerX - rect.left;
-        const canvasCenterY = centerY - rect.top;
-        
-        // Calculate pan delta from previous position
-        const deltaX = centerX - config.view.lastX;
-        const deltaY = centerY - config.view.lastY;
-        
-        // Update last touch position
-        config.view.lastX = centerX;
-        config.view.lastY = centerY;
-        
-        // Calculate current pinch distance
-        const currentDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        );
-        
-        // Calculate zoom ratio (how much the fingers have moved apart/together)
-        const zoomRatio = currentDistance / initialDistance;
-        
-        // Calculate new zoom level with limits
-        const newZoom = Math.max(
-          config.view.minZoom,
-          Math.min(config.view.maxZoom, initialZoom * zoomRatio)
-        );
-        
-        // Apply pan first (based on finger movement)
-        config.view.panX = initialPanX + deltaX;
-        config.view.panY = initialPanY + deltaY;
-        
-        // Then apply zoom centered on the pinch
-        if (Math.abs(newZoom - config.view.zoom) > 0.01) {
-          const worldX = (canvasCenterX - gridOffsetX - config.view.panX) / config.view.zoom;
-          const worldY = (canvasCenterY - gridOffsetY - config.view.panY) / config.view.zoom;
-          
-          // Update the zoom
-          config.view.zoom = newZoom;
-          
-          // Adjust pan to maintain center point
-          config.view.panX = canvasCenterX - gridOffsetX - (worldX * newZoom);
-          config.view.panY = canvasCenterY - gridOffsetY - (worldY * newZoom);
-        }
-        
-        // Apply boundaries
-        applyPanBoundaries(newZoom);
-        
-        // Redraw
-        renderGame();
-      } catch (error) {
-        console.error("Error in pinch-zoom:", error);
-        // Reset to default view if error occurs
-        config.view.zoom = 1;
-        config.view.panX = 0;
-        config.view.panY = 0;
-        renderGame();
-      }
-    } 
-    else if (event.touches.length === 1) {
-      // Single finger pan
-      const touch = event.touches[0];
-      
-      // Detect if this is a pan gesture (not just a tap)
-      if (!config.view.isPanning) {
-        // If finger has moved more than a threshold, consider it a pan
-        if (Math.abs(touch.clientX - config.view.lastX) > 5 || 
-            Math.abs(touch.clientY - config.view.lastY) > 5) {
-          config.view.isPanning = true;
-        } else {
-          return; // Not panning yet
-        }
-      }
-      
-      try {
-        // Calculate the delta
-        const deltaX = touch.clientX - config.view.lastX;
-        const deltaY = touch.clientY - config.view.lastY;
-        
-        // Update the last position
-        config.view.lastX = touch.clientX;
-        config.view.lastY = touch.clientY;
-        
-        // Update the pan values
-        config.view.panX += deltaX;
-        config.view.panY += deltaY;
-        
-        // Apply boundaries
-        applyPanBoundaries(config.view.zoom);
-        
-        // Redraw
-        renderGame();
-      } catch (error) {
-        console.error("Error in pan:", error);
-        // Reset to default view if error occurs
-        config.view.zoom = 1;
-        config.view.panX = 0;
-        config.view.panY = 0;
-        renderGame();
-      }
-    }
-  }
-  
-  function handleTouchEnd(event) {
-    if (event.touches.length < 2) {
-      isZooming = false;
-      // Update initial values for if we start another gesture
-      initialZoom = config.view.zoom;
-      initialPanX = config.view.panX;
-      initialPanY = config.view.panY;
-    }
-    
-    if (event.touches.length === 0) {
-      // No fingers left, process as a tap if we weren't panning/zooming
-      if (!config.view.isPanning && !isZooming && event.changedTouches.length === 1) {
-        const touch = event.changedTouches[0];
-        
-        // Create a synthetic click event
-        const clickEvent = new MouseEvent('click', {
-          clientX: touch.clientX,
-          clientY: touch.clientY
-        });
-        
-        // Process the click
-        handleCanvasClick(clickEvent);
-      }
-      
-      // Reset flags
-      config.view.isPanning = false;
-    }
-  }
-  
-  // Handle double tap (simplified to avoid conflicts)
-  let lastTapTime = 0;
-  let doubleTapTimer = null;
-  
-  function handleDoubleTap(event) {
-    if (event.touches.length !== 1) return;
-    
-    const currentTime = Date.now();
-    
-    // Clear any existing timer
-    if (doubleTapTimer) {
-      clearTimeout(doubleTapTimer);
-      doubleTapTimer = null;
-    }
-    
-    // If this is the second tap within the threshold
-    if (currentTime - lastTapTime < 300) {
-      // Reset view
-      config.view.zoom = 1;
-      config.view.panX = 0;
-      config.view.panY = 0;
+      const currentDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      const newZoom = Math.max(config.view.minZoom,
+                        Math.min(config.view.maxZoom,
+                          touchInitialZoom * (currentDistance / touchInitialDistance)
+                        ));
+      config.view.zoom = newZoom;
+      const currentCenter = {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2
+      };
+      // Update pan simply by adding change in center
+      config.view.panX += (currentCenter.x - lastTouchCenter.x);
+      config.view.panY += (currentCenter.y - lastTouchCenter.y);
+      lastTouchCenter = currentCenter;
       renderGame();
-      
-      // Prevent normal tap handling
-      event.preventDefault();
-      event.stopPropagation();
-      
-      // Reset timer
-      lastTapTime = 0;
-    } else {
-      // First tap - start timer for potential second tap
-      lastTapTime = currentTime;
-      
-      // Reset the timer if no second tap occurs
-      doubleTapTimer = setTimeout(() => {
-        lastTapTime = 0;
-      }, 300);
+    } else if (event.touches.length === 1) {
+      // One-finger pan; add delta movement
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - config.view.lastX;
+      const deltaY = touch.clientY - config.view.lastY;
+      config.view.panX += deltaX;
+      config.view.panY += deltaY;
+      config.view.lastX = touch.clientX;
+      config.view.lastY = touch.clientY;
+      renderGame();
     }
   }
-  
-  // Shared function to apply panning boundaries
-  function applyPanBoundaries(zoom) {
-    const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
-    const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
-    
-    // Allow panning 3 grid sizes below the tower
-    const belowTowerPadding = 3 * config.cellSize * zoom;
-    
-    // Allow panning 10 grid sizes above the tower
-    const aboveTowerPadding = 10 * config.cellSize * zoom;
-    
-    // Allow panning 20 grid sizes to the left and right of the tower
-    const sidePadding = 20 * config.cellSize * zoom;
-    
-    const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
-    const maxPanX = -gridOffsetX + sidePadding;
-    const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
-    const maxPanY = -gridOffsetY + aboveTowerPadding;
-    
-    // Clamp pan values to keep the grid within the boundaries
-    config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
-    config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
+
+  function handleTouchEnd(event) {
+    // If no touches remain, and this was not a tap, do nothing special.
+    if (event.touches.length === 0) {
+      // Optionally, you could call a tap handler here.
+    }
   }
   
   // Fetch the current game state from the server

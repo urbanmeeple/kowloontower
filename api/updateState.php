@@ -1,12 +1,27 @@
 <?php
 // api/updateState.php
 header('Content-Type: application/json');
-require_once('../config.php'); // Now $secret_key is available
+require_once('../config.php');
 
-// Verify that the request includes the correct key from the URL query string
+// Define the log file path (make sure the logs directory exists and is writable)
+$logFile = dirname(__FILE__) . '/../logs/cron.log';
+
+// Logging function: Append timestamped messages to the log file.
+function writeLog($message) {
+    global $logFile;
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
+}
+
+// Log the start of the cron job
+writeLog("Cron job started.");
+
+// Verify that the request includes the correct secret key.
 if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
+    $msg = "Unauthorized access attempt.";
+    writeLog($msg);
     http_response_code(403);
-    echo json_encode(['error' => 'Unauthorized access.']);
+    echo json_encode(['error' => $msg]);
     exit;
 }
 
@@ -22,9 +37,9 @@ function generateNewBlock($currentState) {
 
     $newBlock = [
         'id'    => $blockCount + 1,
-        'x'     => 50, // Example fixed x-coordinate
-        'y'     => 500 - ($blockCount * 30), // Simple stacking logic for y-coordinate
-        'color' => sprintf('#%06X', mt_rand(0, 0xFFFFFF)) // Random color
+        'x'     => 50, // Fixed x-coordinate (update as needed)
+        'y'     => 500 - ($blockCount * 30), // Simple stacking logic
+        'color' => sprintf('#%06X', mt_rand(0, 0xFFFFFF)) // Random color for variety
     ];
 
     $blocks[] = $newBlock;
@@ -32,21 +47,25 @@ function generateNewBlock($currentState) {
 }
 
 try {
-    // Retrieve the current tower state from the database
+    // Retrieve the current tower state.
     $stmt = $pdo->query("SELECT state FROM tower_state ORDER BY updated_at DESC LIMIT 1");
     $row = $stmt->fetch();
     $currentState = $row ? json_decode($row['state'], true) : ['blocks' => []];
 
-    // Generate the new state with an additional block
+    // Generate a new state by adding a new block.
     $newState = generateNewBlock($currentState);
     $newStateJson = json_encode($newState);
 
-    // Insert the updated state into the database
+    // Insert the updated state into the database.
     $stmt = $pdo->prepare("INSERT INTO tower_state (state) VALUES (:state)");
     $stmt->execute(['state' => $newStateJson]);
 
+    // Log success.
+    writeLog("Game state updated successfully. New block count: " . count($newState['blocks']));
     echo json_encode(['success' => true, 'state' => $newState]);
 } catch (Exception $e) {
-    echo json_encode(['error' => $e->getMessage()]);
+    $msg = "Error updating game state: " . $e->getMessage();
+    writeLog($msg);
+    echo json_encode(['error' => $msg]);
 }
 ?>

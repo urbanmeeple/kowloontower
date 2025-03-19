@@ -22,5 +22,5 @@ document.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(draw);
     }
     draw();
-  }); 
+  });
   

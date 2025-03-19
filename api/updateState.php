@@ -26,54 +26,37 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
 }
 
 /**
- * Randomly adds a new room to the tower grid
- *
- * @param array $currentState Current state array with a 'grid' key.
- * @return array Updated state array with the new room added.
+ * Converts selected spaces into constructed rooms
+ * 
+ * @param array $currentState Current state array with 'grid' and 'selected' keys.
+ * @return array Updated state array with selected spaces converted to rooms.
  */
-function addRandomRoom($currentState) {
+function processSelectedToRooms($currentState) {
     $grid = $currentState['grid'];
+    $selected = $currentState['selected'] ?? array_fill(0, count($grid), array_fill(0, count($grid[0]), 0));
+    
     $gridHeight = count($grid);
     $gridWidth = count($grid[0]);
+    $changesCount = 0;
     
-    // Try to find an empty cell adjacent to an existing room
-    $emptyCells = [];
-    
+    // Convert selected spaces to rooms
     for ($y = 0; $y < $gridHeight; $y++) {
         for ($x = 0; $x < $gridWidth; $x++) {
-            if ($grid[$y][$x] === 0) {
-                // Check if this empty cell has any adjacent occupied cells
-                $hasAdjacentRoom = false;
-                
-                // Check cells above, below, left, and right
-                if (
-                    ($y > 0 && $grid[$y-1][$x] === 1) ||
-                    ($y < $gridHeight - 1 && $grid[$y+1][$x] === 1) ||
-                    ($x > 0 && $grid[$y][$x-1] === 1) ||
-                    ($x < $gridWidth - 1 && $grid[$y][$x+1] === 1)
-                ) {
-                    $hasAdjacentRoom = true;
-                }
-                
-                if ($hasAdjacentRoom) {
-                    $emptyCells[] = ['x' => $x, 'y' => $y];
-                }
+            // If space is selected and not already a room
+            if ($selected[$y][$x] === 1 && $grid[$y][$x] === 0) {
+                $grid[$y][$x] = 1;       // Convert to a room
+                $selected[$y][$x] = 0;    // Clear selection
+                $changesCount++;
             }
         }
     }
     
-    // If no empty cells with adjacent rooms, create first room in the bottom center
-    if (empty($emptyCells)) {
-        $centerX = floor($gridWidth / 2);
-        $bottomY = $gridHeight - 1;
-        $grid[$bottomY][$centerX] = 1;
-    } else {
-        // Randomly select one of the candidate cells
-        $selectedCell = $emptyCells[array_rand($emptyCells)];
-        $grid[$selectedCell['y']][$selectedCell['x']] = 1;
-    }
+    writeLog("Converted {$changesCount} selected spaces to rooms.");
     
-    return ['grid' => $grid];
+    return [
+        'grid' => $grid,
+        'selected' => $selected 
+    ];
 }
 
 try {
@@ -84,14 +67,21 @@ try {
     if ($row) {
         $currentState = json_decode($row['state'], true);
     } else {
-        // If no state exists yet, initialize with an empty grid
-        // Create a 20x30 grid filled with zeros
-        $grid = array_fill(0, 30, array_fill(0, 20, 0));
-        $currentState = ['grid' => $grid];
+        // If no state exists yet, initialize with empty grid and selected arrays
+        $gridHeight = 30;
+        $gridWidth = 20;
+        
+        $grid = array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0));
+        $selected = array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0));
+        
+        $currentState = [
+            'grid' => $grid,
+            'selected' => $selected
+        ];
     }
 
-    // Generate a new state by adding a random room
-    $newState = addRandomRoom($currentState);
+    // Process selected spaces and convert them to rooms
+    $newState = processSelectedToRooms($currentState);
     
     // Add timestamp
     $newState['timestamp'] = time();
@@ -109,7 +99,7 @@ try {
     }
 
     // Log success.
-    writeLog("Game state updated successfully. Room count: " . $roomCount);
+    writeLog("Game state updated successfully. Total room count: " . $roomCount);
     echo json_encode(['success' => true, 'state' => $newState]);
 } catch (Exception $e) {
     $msg = "Error updating game state: " . $e->getMessage();

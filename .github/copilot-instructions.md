@@ -1,4 +1,4 @@
-Project Type: Web-based game (mobile-friendly)
+Project Type: Web-based multiplayer game (mobile-friendly)
 Technology Stack: PHP, HTML (Canvas), CSS, JavaScript with two.js, MySQL
 Graphics: Procedurally generated (no graphic assets)
 Game Logic: Updated via a cronjob every minute by calling updateState.php
@@ -16,6 +16,7 @@ No external images, sprites, or third-party graphics libraries.
 Game Logic & Updates:
 A cronjob triggers updateState.php every minute to process game state changes.
 The game fetches updated state from the MySQL database.
+The game should work with multiple players and syncronize game state through the cronjob trigger and AJAX/Fetch API
 
 Database & Backend:
 Use PHP & MySQL for game state storage and updates.

@@ -10,9 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
         bottom: '#4CAF50', // Green for bottom
         brightness: 1.0    // Initial brightness (1.0 = 100%)
       },
-      grid: '#333333',   // Grid line color
-      room: '#FFCC00',   // Room color
-      ground: '#8B4513'  // Brown color for ground line
+      grid: '#333333',     // Grid line color
+      room: '#FFCC00',     // Room color (solid)
+      selected: '#FFCC0066', // Selected space color (transparent)
+      ground: '#8B4513'    // Brown color for ground line
     },
     // Zoom and pan settings
     view: {
@@ -31,9 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     lastStateTimestamp: null // Track when we last received a state update
   };
 
-  // Game state
+  // Game state with selected cells and rooms
   let gameState = {
     grid: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
+    selected: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
     lastUpdate: null
   };
 
@@ -217,9 +219,10 @@ document.addEventListener('DOMContentLoaded', () => {
     groundLine.linewidth = 5; // Thicker line
     gameGroup.add(groundLine);
     
-    // Draw rooms
+    // Draw selected spaces (transparent) and rooms (solid)
     for (let y = 0; y < config.gridHeight; y++) {
       for (let x = 0; x < config.gridWidth; x++) {
+        // Draw room (solid color) if there's a constructed room
         if (gameState.grid[y][x] === 1) {
           const room = new Two.Rectangle(
             x * config.cellSize + config.cellSize / 2, 
@@ -230,6 +233,18 @@ document.addEventListener('DOMContentLoaded', () => {
           room.fill = config.colors.room;
           room.noStroke();
           gameGroup.add(room);
+        } 
+        // Draw selected space (transparent color) if the space is selected
+        else if (gameState.selected[y][x] === 1) {
+          const selectedSpace = new Two.Rectangle(
+            x * config.cellSize + config.cellSize / 2, 
+            y * config.cellSize + config.cellSize / 2,
+            config.cellSize - 2, 
+            config.cellSize - 2
+          );
+          selectedSpace.fill = config.colors.selected;
+          selectedSpace.noStroke();
+          gameGroup.add(selectedSpace);
         }
       }
     }
@@ -276,9 +291,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if click is within grid bounds
     if (gridPos.x >= 0 && gridPos.x < config.gridWidth && 
         gridPos.y >= 0 && gridPos.y < config.gridHeight) {
-      // Only allow adding a room to an empty cell
-      if (gameState.grid[gridPos.y][gridPos.x] === 0) {
-        gameState.grid[gridPos.y][gridPos.x] = 1;
+      // Only allow selecting an empty cell that isn't already selected
+      if (gameState.grid[gridPos.y][gridPos.x] === 0 && 
+          gameState.selected[gridPos.y][gridPos.x] === 0) {
+        // Mark as selected instead of creating a room immediately
+        gameState.selected[gridPos.y][gridPos.x] = 1;
         renderGame();
         saveGameState();
       }
@@ -508,40 +525,40 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       
       if (data.grid) {
-        // Check if the grid has changed (only update if different)
+        // Check if the grid or selected spaces have changed
         let hasChanged = false;
         
-        // Compare with existing grid (if we have one)
+        // Compare with existing grid and selected spaces
         if (gameState.grid && gameState.grid.length > 0) {
-          // Quick check: count total rooms
-          const newRoomCount = data.grid.reduce((total, row) => 
-            total + row.reduce((rowTotal, cell) => rowTotal + cell, 0), 0);
+          // Check if grid has changed
+          const gridChanged = JSON.stringify(data.grid) !== JSON.stringify(gameState.grid);
           
-          const oldRoomCount = gameState.grid.reduce((total, row) => 
-            total + row.reduce((rowTotal, cell) => rowTotal + cell, 0), 0);
+          // Check if selected spaces have changed (if present in data)
+          const selectedChanged = data.selected && 
+            JSON.stringify(data.selected) !== JSON.stringify(gameState.selected);
           
-          // If room counts differ, grid has definitely changed
-          if (newRoomCount !== oldRoomCount) {
-            hasChanged = true;
-          } else if (newRoomCount > 0) {
-            // If counts are the same but not zero, do a detailed comparison
-            hasChanged = JSON.stringify(data.grid) !== JSON.stringify(gameState.grid);
-          }
+          hasChanged = gridChanged || selectedChanged;
         } else {
           // First load or empty grid
           hasChanged = true;
         }
         
-        // Only update the UI if the grid has changed
+        // Only update the UI if something has changed
         if (hasChanged) {
           console.log("Game state updated from server");
           gameState.grid = data.grid;
+          
+          // Update selected spaces if present in data
+          if (data.selected) {
+            gameState.selected = data.selected;
+          }
+          
           gameState.lastUpdate = new Date();
           renderGame();
         }
         
         // Store last update timestamp
-        config.lastStateTimestamp = new Date();
+        config.lastStateTimestamp = data.timestamp || new Date().getTime();
       }
     } catch (error) {
       console.error('Error fetching game state:', error);
@@ -557,7 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          grid: gameState.grid
+          grid: gameState.grid,
+          selected: gameState.selected
         })
       });
       

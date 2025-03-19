@@ -14,11 +14,16 @@ try {
         $state['timestamp'] = strtotime($row['updated_at']);
         echo json_encode($state);
     } else {
-        // If no state exists yet, initialize with an empty grid
-        // Create a 20x30 grid filled with zeros
-        $grid = array_fill(0, 30, array_fill(0, 20, 0));
+        // If no state exists yet, initialize with empty grid and selected arrays
+        $gridHeight = 30;
+        $gridWidth = 20;
+        
+        $grid = array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0));
+        $selected = array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0));
+        
         $initialState = [
             'grid' => $grid,
+            'selected' => $selected,
             'timestamp' => time()
         ];
         echo json_encode($initialState);

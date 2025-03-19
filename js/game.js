@@ -365,10 +365,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
     const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
     
+    // Allow panning 3 grid sizes below the tower
+    const belowTowerPadding = 3 * config.cellSize * zoom;
+    
+    // Allow panning 10 grid sizes above the tower
+    const aboveTowerPadding = 10 * config.cellSize * zoom;
+    
     const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX;
     const maxPanX = -gridOffsetX;
-    const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY;
-    const maxPanY = -gridOffsetY;
+    const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
+    const maxPanY = -gridOffsetY + aboveTowerPadding;
     
     // Clamp pan values to keep the grid within the boundaries
     config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));

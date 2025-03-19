@@ -392,7 +392,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomFactor = 1 + (delta * config.view.zoomStep);
     
     // Calculate new zoom level with min/max limits
-    // We're using the original min/max values without additional calculations
     let newZoom = Math.max(
       config.view.minZoom, 
       Math.min(config.view.maxZoom, config.view.zoom * zoomFactor)
@@ -486,18 +485,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const mouseY = centerY - rect.top;
       
       // Calculate new zoom level with min/max limits
-      // Using original minZoom value to allow zooming out fully
       let newZoom = Math.max(
         config.view.minZoom, 
         Math.min(config.view.maxZoom, initialZoom * zoomRatio)
       );
       
+      // Apply new zoom
+      config.view.zoom = newZoom;
+      
       // Calculate the zoom point in world coordinates before zoom
       const worldX = (mouseX - gridOffsetX - config.view.panX) / config.view.zoom;
       const worldY = (mouseY - gridOffsetY - config.view.panY) / config.view.zoom;
-      
-      // Apply new zoom
-      config.view.zoom = newZoom;
       
       // Calculate the new pan values to keep the zoom centered on pinch center
       config.view.panX = mouseX - gridOffsetX - (worldX * newZoom);

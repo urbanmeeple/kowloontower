@@ -1,5 +1,6 @@
 #Ignore custom files and folders
 includes/
+config.php
 
 # Ignore node_modules directory
 node_modules/

@@ -360,6 +360,20 @@ document.addEventListener('DOMContentLoaded', () => {
     config.view.panX += deltaX;
     config.view.panY += deltaY;
     
+    // Calculate the boundaries for panning
+    const zoom = config.view.zoom;
+    const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
+    const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
+    
+    const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX;
+    const maxPanX = -gridOffsetX;
+    const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY;
+    const maxPanY = -gridOffsetY;
+    
+    // Clamp pan values to keep the grid within the boundaries
+    config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
+    config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
+    
     // Redraw
     renderGame();
   }

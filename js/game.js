@@ -6,8 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cellSize: 20,   // Size of each cell in pixels
     colors: {
       background: {
-        from: '#FF5555', // Red
-        to: '#5555FF'    // Blue
+        top: '#FFEB3B',    // Yellow for top
+        bottom: '#4CAF50', // Green for bottom
+        brightness: 1.0    // Initial brightness (1.0 = 100%)
       },
       grid: '#333333',   // Grid line color
       room: '#FFCC00'    // Room color
@@ -74,12 +75,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderBackground() {
     backgroundTwo.clear();
     
-    // Create animated gradient background
+    // Get the current brightness factor
+    const brightness = config.colors.background.brightness;
+    
+    // Apply brightness to base colors
+    const topColor = adjustBrightness(config.colors.background.top, brightness);
+    const bottomColor = adjustBrightness(config.colors.background.bottom, brightness);
+    
+    // Create gradient background from top (yellow) to bottom (green)
     const gradient = backgroundTwo.makeLinearGradient(
-      0, 0,                        // x1, y1
-      backgroundTwo.width, backgroundTwo.height,  // x2, y2
-      new Two.Stop(0, config.colors.background.from),
-      new Two.Stop(1, config.colors.background.to)
+      0, 0,                        // x1, y1 (top)
+      0, backgroundTwo.height,     // x2, y2 (bottom)
+      new Two.Stop(0, topColor),   // Yellow at top
+      new Two.Stop(1, bottomColor) // Green at bottom
     );
     
     const background = backgroundTwo.makeRectangle(
@@ -93,6 +101,22 @@ document.addEventListener('DOMContentLoaded', () => {
     background.noStroke();
     
     backgroundTwo.update();
+  }
+  
+  // Helper function to adjust color brightness
+  function adjustBrightness(hexColor, factor) {
+    // Convert hex to RGB
+    let r = parseInt(hexColor.slice(1, 3), 16);
+    let g = parseInt(hexColor.slice(3, 5), 16);
+    let b = parseInt(hexColor.slice(5, 7), 16);
+    
+    // Adjust brightness (clamp values between 0-255)
+    r = Math.min(255, Math.max(0, Math.round(r * factor)));
+    g = Math.min(255, Math.max(0, Math.round(g * factor)));
+    b = Math.min(255, Math.max(0, Math.round(b * factor)));
+    
+    // Convert back to hex
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
   
   function renderGame() {
@@ -140,17 +164,15 @@ document.addEventListener('DOMContentLoaded', () => {
     gameTwo.update();
   }
   
-  // Animation loop for the background gradient
+  // Animation loop for the background gradient brightness
   let animationPhase = 0;
   function animateBackground() {
-    animationPhase += 0.005;
+    // Very slow oscillation of brightness (full cycle takes ~2 minutes)
+    animationPhase += 0.0005;
     
-    // Shift the gradient colors over time
-    const from = `hsl(${(Math.sin(animationPhase) * 60 + 0) % 360}, 80%, 60%)`;
-    const to = `hsl(${(Math.sin(animationPhase + 2) * 60 + 240) % 360}, 80%, 60%)`;
-    
-    config.colors.background.from = from;
-    config.colors.background.to = to;
+    // Brightness oscillates between 70% and 100%
+    const brightness = 0.7 + (Math.sin(animationPhase) + 1) * 0.15;
+    config.colors.background.brightness = brightness;
     
     renderBackground();
     requestAnimationFrame(animateBackground);

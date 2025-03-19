@@ -412,10 +412,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomFactor = 1 + (delta * config.view.zoomStep);
     
     // Calculate new zoom level (with min/max limits)
-    const newZoom = Math.max(
+    let newZoom = Math.max(
       config.view.minZoom, 
       Math.min(config.view.maxZoom, config.view.zoom * zoomFactor)
     );
+    
+    // Calculate the boundaries for zoom
+    const gridWidthPixels = config.gridWidth * config.cellSize;
+    const gridHeightPixels = config.gridHeight * config.cellSize;
+    
+    // Calculate the minimum zoom level to keep the grid within the boundaries
+    const minZoomX = gameCanvas.width / gridWidthPixels;
+    const minZoomY = gameCanvas.height / gridHeightPixels;
+    const minZoom = Math.max(config.view.minZoom, Math.max(minZoomX, minZoomY));
+    
+    // Apply new zoom
+    newZoom = Math.max(minZoom, newZoom);
     
     // Calculate the zoom point in world coordinates before zoom
     const worldX = (mouseX - gridOffsetX - config.view.panX) / config.view.zoom;
@@ -427,6 +439,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calculate the new pan values to keep the zoom centered on mouse position
     config.view.panX = mouseX - gridOffsetX - (worldX * newZoom);
     config.view.panY = mouseY - gridOffsetY - (worldY * newZoom);
+    
+    // Calculate the boundaries for panning
+    const zoomNew = config.view.zoom;
+    const gridWidthPixelsNew = config.gridWidth * config.cellSize * zoomNew;
+    const gridHeightPixelsNew = config.gridHeight * config.cellSize * zoomNew;
+    
+    // Allow panning 3 grid sizes below the tower
+    const belowTowerPadding = 3 * config.cellSize * zoomNew;
+    
+    // Allow panning 10 grid sizes above the tower
+    const aboveTowerPadding = 10 * config.cellSize * zoomNew;
+    
+    const sidePadding = 20 * config.cellSize * zoomNew;
+    
+    const minPanX = -gridWidthPixelsNew + gameCanvas.width - gridOffsetX - sidePadding;
+    const maxPanX = -gridOffsetX + sidePadding;
+    const minPanY = -gridHeightPixelsNew + gameCanvas.height - gridOffsetY - belowTowerPadding;
+    const maxPanY = -gridOffsetY + aboveTowerPadding;
+    
+    // Clamp pan values to keep the grid within the boundaries
+    config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
+    config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
     
     // Redraw
     renderGame();
@@ -483,10 +517,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const mouseY = centerY - rect.top;
       
       // Calculate new zoom level (with min/max limits)
-      const newZoom = Math.max(
+      let newZoom = Math.max(
         config.view.minZoom, 
         Math.min(config.view.maxZoom, initialZoom * zoomRatio)
       );
+      
+      // Calculate the boundaries for zoom
+      const gridWidthPixels = config.gridWidth * config.cellSize;
+      const gridHeightPixels = config.gridHeight * config.cellSize;
+      
+      // Calculate the minimum zoom level to keep the grid within the boundaries
+      const minZoomX = gameCanvas.width / gridWidthPixels;
+      const minZoomY = gameCanvas.height / gridHeightPixels;
+      const minZoom = Math.max(config.view.minZoom, Math.max(minZoomX, minZoomY));
+      
+      // Apply new zoom
+      newZoom = Math.max(minZoom, newZoom);
       
       // Calculate the zoom point in world coordinates before zoom
       const worldX = (mouseX - gridOffsetX - config.view.panX) / config.view.zoom;
@@ -498,6 +544,28 @@ document.addEventListener('DOMContentLoaded', () => {
       // Calculate the new pan values to keep the zoom centered on pinch center
       config.view.panX = mouseX - gridOffsetX - (worldX * newZoom);
       config.view.panY = mouseY - gridOffsetY - (worldY * newZoom);
+      
+      // Calculate the boundaries for panning
+      const zoomNew = config.view.zoom;
+      const gridWidthPixelsNew = config.gridWidth * config.cellSize * zoomNew;
+      const gridHeightPixelsNew = config.gridHeight * config.cellSize * zoomNew;
+      
+      // Allow panning 3 grid sizes below the tower
+      const belowTowerPadding = 3 * config.cellSize * zoomNew;
+      
+      // Allow panning 10 grid sizes above the tower
+      const aboveTowerPadding = 10 * config.cellSize * zoomNew;
+      
+      const sidePadding = 20 * config.cellSize * zoomNew;
+      
+      const minPanX = -gridWidthPixelsNew + gameCanvas.width - gridOffsetX - sidePadding;
+      const maxPanX = -gridOffsetX + sidePadding;
+      const minPanY = -gridHeightPixelsNew + gameCanvas.height - gridOffsetY - belowTowerPadding;
+      const maxPanY = -gridOffsetY + aboveTowerPadding;
+      
+      // Clamp pan values to keep the grid within the boundaries
+      config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
+      config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
       
       // Redraw
       renderGame();

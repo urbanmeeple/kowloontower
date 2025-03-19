@@ -1,7 +1,7 @@
 <?php
 // api/gameState.php
 header('Content-Type: application/json');
-require_once('../config.php'); // Adjust the path if needed
+require_once('../config.php');
 
 try {
     // Get the most recent tower state
@@ -11,8 +11,10 @@ try {
     if ($row) {
         echo $row['state'];
     } else {
-        // If no state exists yet, initialize with an empty tower
-        $initialState = json_encode(['blocks' => []]);
+        // If no state exists yet, initialize with an empty grid
+        // Create a 20x30 grid filled with zeros
+        $grid = array_fill(0, 30, array_fill(0, 20, 0));
+        $initialState = json_encode(['grid' => $grid]);
         echo $initialState;
     }
 } catch (Exception $e) {

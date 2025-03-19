@@ -25,7 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
       isPanning: false,  // Flag to track panning state
       lastX: 0,          // Last mouse/touch X position
       lastY: 0           // Last mouse/touch Y position
-    }
+    },
+    // Auto-update settings
+    updateInterval: 10000, // Check for updates every 10 seconds
+    lastStateTimestamp: null // Track when we last received a state update
   };
 
   // Game state
@@ -505,9 +508,40 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       
       if (data.grid) {
-        gameState.grid = data.grid;
-        gameState.lastUpdate = new Date();
-        renderGame();
+        // Check if the grid has changed (only update if different)
+        let hasChanged = false;
+        
+        // Compare with existing grid (if we have one)
+        if (gameState.grid && gameState.grid.length > 0) {
+          // Quick check: count total rooms
+          const newRoomCount = data.grid.reduce((total, row) => 
+            total + row.reduce((rowTotal, cell) => rowTotal + cell, 0), 0);
+          
+          const oldRoomCount = gameState.grid.reduce((total, row) => 
+            total + row.reduce((rowTotal, cell) => rowTotal + cell, 0), 0);
+          
+          // If room counts differ, grid has definitely changed
+          if (newRoomCount !== oldRoomCount) {
+            hasChanged = true;
+          } else if (newRoomCount > 0) {
+            // If counts are the same but not zero, do a detailed comparison
+            hasChanged = JSON.stringify(data.grid) !== JSON.stringify(gameState.grid);
+          }
+        } else {
+          // First load or empty grid
+          hasChanged = true;
+        }
+        
+        // Only update the UI if the grid has changed
+        if (hasChanged) {
+          console.log("Game state updated from server");
+          gameState.grid = data.grid;
+          gameState.lastUpdate = new Date();
+          renderGame();
+        }
+        
+        // Store last update timestamp
+        config.lastStateTimestamp = new Date();
       }
     } catch (error) {
       console.error('Error fetching game state:', error);
@@ -536,27 +570,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // Periodically check for updates
+  function startAutoUpdates() {
+    // Initial fetch
+    fetchGameState();
+    
+    // Set up interval for periodic updates
+    setInterval(() => {
+      fetchGameState();
+    }, config.updateInterval);
+  }
+  
   // Initialize the game
-  fetchGameState();
-  resizeCanvas();
+  function initGame() {
+    resizeCanvas();
+    startAutoUpdates();
+    
+    // Set up event listeners
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Mouse event listeners
+    gameCanvas.addEventListener('click', handleCanvasClick);
+    gameCanvas.addEventListener('mousedown', handlePanStart);
+    gameCanvas.addEventListener('wheel', handleZoom, { passive: false });
+    
+    // Prevent context menu on right click
+    gameCanvas.addEventListener('contextmenu', event => event.preventDefault());
+    
+    // Touch event listeners for mobile
+    gameCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    gameCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    gameCanvas.addEventListener('touchend', handleTouchEnd);
+    gameCanvas.addEventListener('touchstart', handleDoubleTap);
+    
+    // Start the animation loop
+    animateBackground();
+  }
   
-  // Set up event listeners
-  window.addEventListener('resize', resizeCanvas);
-  
-  // Mouse event listeners
-  gameCanvas.addEventListener('click', handleCanvasClick);
-  gameCanvas.addEventListener('mousedown', handlePanStart);
-  gameCanvas.addEventListener('wheel', handleZoom, { passive: false });
-  
-  // Prevent context menu on right click
-  gameCanvas.addEventListener('contextmenu', event => event.preventDefault());
-  
-  // Touch event listeners for mobile
-  gameCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-  gameCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-  gameCanvas.addEventListener('touchend', handleTouchEnd);
-  gameCanvas.addEventListener('touchstart', handleDoubleTap);
-  
-  // Start the animation loop
-  animateBackground();
+  // Start the game
+  initGame();
 });

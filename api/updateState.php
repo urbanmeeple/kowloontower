@@ -92,6 +92,10 @@ try {
 
     // Generate a new state by adding a random room
     $newState = addRandomRoom($currentState);
+    
+    // Add timestamp
+    $newState['timestamp'] = time();
+    
     $newStateJson = json_encode($newState);
 
     // Insert the updated state into the database.

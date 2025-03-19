@@ -12,12 +12,15 @@ if (!isset($data['grid'])) {
 }
 
 try {
+    // Add a timestamp to track when this state was created
+    $data['timestamp'] = time();
+    
     // Save the updated state to the database
     $state = json_encode($data);
     $stmt = $pdo->prepare("INSERT INTO tower_state (state) VALUES (:state)");
     $stmt->execute(['state' => $state]);
     
-    echo json_encode(['success' => true]);
+    echo json_encode(['success' => true, 'timestamp' => $data['timestamp']]);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

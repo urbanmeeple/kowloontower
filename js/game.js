@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
         brightness: 1.0    // Initial brightness (1.0 = 100%)
       },
       grid: '#333333',     // Grid line color
-      room: '#FFCC00',     // Room color (solid)
-      selected: '#FFCC0066', // Selected space color (transparent)
+      room: '#000000',     // Room color (solid black)
+      selected: '#00000066', // Selected space color (transparent black)
       ground: '#8B4513'    // Brown color for ground line
     },
     // Zoom and pan settings
@@ -108,31 +108,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const topColor = adjustBrightness(config.colors.background.top, brightness);
     const bottomColor = adjustBrightness(config.colors.background.bottom, brightness);
 
-    // Explicitly calculate the grid boundaries for gradient positioning
-    const gridTop = gridOffsetY;
-    const gridBottom = gridOffsetY + config.gridHeight * config.cellSize;
+    // Using a different approach with rectangle shape for more reliable gradient rendering
+    const bgHeight = backgroundTwo.height;
+    const bgWidth = backgroundTwo.width;
     
-    // Create gradient that ensures green is visible at the bottom
-    // Start above the grid top and extend below grid bottom
+    // Create a full-screen rectangle with the gradient
+    // This approach is more direct and should ensure the gradient is fully visible
+    const bgRect = backgroundTwo.makeRectangle(
+      bgWidth / 2, 
+      bgHeight / 2, 
+      bgWidth, 
+      bgHeight
+    );
+    
+    // Create a vertical gradient from bottom to top
     const gradient = backgroundTwo.makeLinearGradient(
-      0, gridTop - 200,         // x1, y1 (much above the grid)
-      0, gridBottom + 100,      // x2, y2 (below the grid)
-      new Two.Stop(0, topColor),            // Yellow at top
-      new Two.Stop(0.6, topColor),          // Yellow still at 60% down
-      new Two.Stop(0.7, mixColors(topColor, bottomColor, 0.3)),  // Start transition
-      new Two.Stop(0.85, mixColors(topColor, bottomColor, 0.7)), // More green
-      new Two.Stop(1, bottomColor)          // Full green at bottom
+      bgWidth / 2, 0,          // x1, y1 (top center)
+      bgWidth / 2, bgHeight,   // x2, y2 (bottom center)
+      [
+        new Two.Stop(0.0, topColor),        // Yellow at top
+        new Two.Stop(0.6, topColor),        // Yellow through 60% of the gradient
+        new Two.Stop(0.8, bottomColor),     // Start transition to green
+        new Two.Stop(1.0, bottomColor)      // Full green at bottom
+      ]
     );
     
-    const background = backgroundTwo.makeRectangle(
-      backgroundTwo.width / 2,
-      backgroundTwo.height / 2,
-      backgroundTwo.width,
-      backgroundTwo.height
-    );
-    
-    background.fill = gradient;
-    background.noStroke();
+    bgRect.fill = gradient;
+    bgRect.noStroke();
     
     backgroundTwo.update();
   }

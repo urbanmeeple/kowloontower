@@ -689,9 +689,13 @@ document.addEventListener('DOMContentLoaded', () => {
           hasChanged = true;
         }
         
-        // Set timer from server's last update time on first load
-        if (data.lastUpdateTimestamp && !gameState.lastUpdate) {
+        // Always update the timer when we get a response from the server
+        // This ensures clients stay in sync with server updates
+        if (data.lastUpdateTimestamp) {
           playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
+          console.log("Timer updated from server timestamp, even if grid hasn't changed");
+        } else {
+          playerHUD.resetUpdateTimer();
         }
         
         // Only update the UI if something has changed
@@ -719,13 +723,6 @@ document.addEventListener('DOMContentLoaded', () => {
           
           gameState.lastUpdate = new Date();
           renderGame();
-          
-          // Reset the update timer in the HUD
-          if (data.lastUpdateTimestamp) {
-            playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
-          } else {
-            playerHUD.resetUpdateTimer();
-          }
         }
         
         // If player data is included in the response, update the player state and HUD

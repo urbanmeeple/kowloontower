@@ -50,6 +50,29 @@ function getPlayerData($playerID) {
     }
 }
 
+/**
+ * Get the last update time from the game_state table
+ * 
+ * @return string|null The last_update_datetime as a string or null if not found
+ */
+function getLastUpdateTime() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->query("SELECT last_update_datetime FROM game_state LIMIT 1");
+        $row = $stmt->fetch();
+        
+        if ($row) {
+            return $row['last_update_datetime'];
+        }
+        
+        return null;
+    } catch (Exception $e) {
+        writeLog("Error getting last update time: " . $e->getMessage());
+        return null;
+    }
+}
+
 try {
     // Get player ID from request parameters (if provided)
     $playerID = isset($_GET['playerID']) ? $_GET['playerID'] : null;
@@ -58,10 +81,19 @@ try {
     $stmt = $pdo->query("SELECT state, updated_at FROM tower_state ORDER BY updated_at DESC LIMIT 1");
     $row = $stmt->fetch();
     
+    // Get the last update time from game_state table
+    $lastUpdateTime = getLastUpdateTime();
+    
     if ($row) {
         // Parse the state and add the timestamp
         $state = json_decode($row['state'], true);
         $state['timestamp'] = strtotime($row['updated_at']);
+        
+        // Add last update time if available
+        if ($lastUpdateTime) {
+            $state['lastUpdateTime'] = $lastUpdateTime;
+            $state['lastUpdateTimestamp'] = strtotime($lastUpdateTime);
+        }
         
         // Add player data if playerID is provided
         if ($playerID) {
@@ -85,6 +117,12 @@ try {
             'selected' => $selected,
             'timestamp' => time()
         ];
+        
+        // Add last update time if available
+        if ($lastUpdateTime) {
+            $initialState['lastUpdateTime'] = $lastUpdateTime;
+            $initialState['lastUpdateTimestamp'] = strtotime($lastUpdateTime);
+        }
         
         // Add player data if playerID is provided
         if ($playerID) {

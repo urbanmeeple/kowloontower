@@ -13,6 +13,10 @@ class PlayerHUD {
     this.element.id = 'player-hud';
     containerElement.appendChild(this.element);
     
+    // Timer variables
+    this.lastUpdateTime = Date.now();
+    this.timerInterval = null;
+    
     // Initial player data structure
     this.playerData = {
       username: 'Loading...',
@@ -30,6 +34,9 @@ class PlayerHUD {
     
     // Initial render with loading state
     this.update(this.playerData);
+    
+    // Start the update timer
+    this.startUpdateTimer();
     
     // Log HUD initialization
     console.log('Player HUD initialized');
@@ -52,6 +59,10 @@ class PlayerHUD {
     const roomsSection = document.createElement('div');
     roomsSection.className = 'hud-section rooms-section';
     
+    // Create update timer section
+    const timerSection = document.createElement('div');
+    timerSection.className = 'hud-section timer-section';
+    
     // Add elements for each data point
     usernameSection.innerHTML = '<span class="label">Player:</span> <span id="player-username">Loading...</span>';
     
@@ -69,11 +80,15 @@ class PlayerHUD {
     
     roomsSection.innerHTML = '<span class="label">Rooms:</span> <span id="player-rooms">0</span>';
     
+    // Timer display with minutes and seconds
+    timerSection.innerHTML = '<span class="label">Since update:</span> <span id="update-timer" class="timer-fresh">00:00</span>';
+    
     // Add sections to HUD
     this.element.appendChild(usernameSection);
     this.element.appendChild(moneySection);
     this.element.appendChild(stocksSection);
     this.element.appendChild(roomsSection);
+    this.element.appendChild(timerSection);
   }
   
   /**
@@ -118,6 +133,92 @@ class PlayerHUD {
     document.getElementById('player-rooms').textContent = this.playerData.roomCount;
     
     console.log('HUD updated with new player data');
+  }
+
+  /**
+   * Set the timer based on a server timestamp
+   * @param {number|string} serverTimestamp - Unix timestamp or ISO date string from server
+   */
+  setTimerFromServer(serverTimestamp) {
+    if (!serverTimestamp) return;
+    
+    let timestamp;
+    
+    // If serverTimestamp is a string (ISO date), convert to timestamp
+    if (typeof serverTimestamp === 'string') {
+      timestamp = new Date(serverTimestamp).getTime();
+    } else {
+      // If it's already a Unix timestamp (seconds), convert to milliseconds
+      timestamp = serverTimestamp * 1000;
+    }
+    
+    // Only update if the timestamp is valid
+    if (!isNaN(timestamp) && timestamp > 0) {
+      this.lastUpdateTime = timestamp;
+      this.updateTimerDisplay();
+      console.log('Timer set from server timestamp:', new Date(timestamp).toISOString());
+    } else {
+      console.warn('Invalid server timestamp:', serverTimestamp);
+    }
+  }
+  
+  /**
+   * Start the timer that tracks time since last update
+   */
+  startUpdateTimer() {
+    // Clear any existing timer
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+    
+    // Update display immediately
+    this.updateTimerDisplay();
+    
+    // Start interval to update the timer every second
+    this.timerInterval = setInterval(() => {
+      this.updateTimerDisplay();
+    }, 1000);
+  }
+  
+  /**
+   * Update the timer display with current elapsed time and apply styling
+   */
+  updateTimerDisplay() {
+    const timerElement = document.getElementById('update-timer');
+    if (!timerElement) return;
+    
+    // Calculate elapsed time
+    const elapsedSeconds = Math.floor((Date.now() - this.lastUpdateTime) / 1000);
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+    
+    // Format as MM:SS
+    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    timerElement.textContent = timeString;
+    
+    // Update timer styling based on elapsed time
+    if (elapsedSeconds < 30) {
+      // Fresh: Green (0-30s)
+      timerElement.className = 'timer-fresh';
+    } else if (elapsedSeconds < 50) {
+      // Warning: Orange (30-50s)
+      timerElement.className = 'timer-warning';
+    } else {
+      // Critical: Red with larger font (50s+)
+      timerElement.className = 'timer-critical';
+    }
+  }
+  
+  /**
+   * Reset the update timer (called when game state is updated)
+   */
+  resetUpdateTimer() {
+    this.lastUpdateTime = Date.now();
+    
+    // Update display immediately
+    this.updateTimerDisplay();
+    
+    console.log('Update timer reset');
   }
 }
 

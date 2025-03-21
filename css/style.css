@@ -79,6 +79,24 @@ canvas {
   align-items: center;
 }
 
+/* Timer styles */
+.timer-fresh {
+  color: #4CAF50; /* Green */
+  transition: color 0.3s, font-size 0.3s;
+}
+
+.timer-warning {
+  color: #FF9800; /* Orange */
+  transition: color 0.3s, font-size 0.3s;
+}
+
+.timer-critical {
+  color: #F44336; /* Red */
+  font-size: 18px; /* Larger font size */
+  font-weight: bold;
+  transition: color 0.3s, font-size 0.3s;
+}
+
 /* Responsive adjustments for small screens */
 @media (max-width: 768px) {
   #player-hud {

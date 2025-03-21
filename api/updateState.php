@@ -15,9 +15,12 @@ function writeLog($message) {
 // Log the start of the cron job
 writeLog("Cron job started.");
 
-// Verify that the request includes the correct secret key.
-if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
-    $msg = "Unauthorized access attempt.";
+// Enforce that this script can only be run from the command line (cronjob) or with the correct secret key
+$isCommandLine = (php_sapi_name() === 'cli');
+$hasValidKey = isset($_GET['key']) && $_GET['key'] === $secret_key;
+
+if (!$isCommandLine && !$hasValidKey) {
+    $msg = "Unauthorized access attempt. This script can only be run from a cronjob or with proper authorization.";
     writeLog($msg);
     http_response_code(403);
     echo json_encode(['error' => $msg]);
@@ -115,6 +118,9 @@ function processSelectedToRooms($currentState) {
 }
 
 try {
+    // Get current UTC datetime for updating the game state
+    $currentUtcDateTime = gmdate('Y-m-d H:i:s');
+    
     // Retrieve the current tower state.
     $stmt = $pdo->query("SELECT state FROM tower_state ORDER BY updated_at DESC LIMIT 1");
     $row = $stmt->fetch();
@@ -145,6 +151,22 @@ try {
     $stmt = $pdo->prepare("INSERT INTO tower_state (state) VALUES (:state)");
     $stmt->execute(['state' => $newStateJson]);
 
+    // Update the last_update_datetime in the game_state table
+    $updateStateStmt = $pdo->prepare("
+        UPDATE game_state SET last_update_datetime = :last_update_datetime
+        WHERE 1
+    ");
+    
+    // If no rows were affected, it means we need to insert a new row
+    if ($updateStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]) && $updateStateStmt->rowCount() === 0) {
+        $insertStateStmt = $pdo->prepare("
+            INSERT INTO game_state (game_time, last_update_datetime) 
+            VALUES (0, :last_update_datetime)
+        ");
+        $insertStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]);
+        writeLog("Initialized game_state table with first record");
+    }
+
     // Count occupied cells for logging
     $roomCount = 0;
     foreach ($newState['grid'] as $row) {
@@ -153,6 +175,7 @@ try {
 
     // Log success.
     writeLog("Game state updated successfully. Total room count: $roomCount");
+    writeLog("Last update time set to: $currentUtcDateTime UTC");
     echo json_encode(['success' => true, 'state' => $newState]);
 } catch (Exception $e) {
     $msg = "Error updating game state: " . $e->getMessage();

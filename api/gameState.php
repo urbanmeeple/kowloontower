@@ -60,7 +60,7 @@ function getRooms() {
     
     try {
         $stmt = $pdo->query("
-            SELECT location_x, location_y, sector_type, roomID 
+            SELECT location_x, location_y, sector_type, roomID, status 
             FROM rooms
         ");
         
@@ -75,7 +75,8 @@ function getRooms() {
             
             $rooms[$y][$x] = [
                 'type' => $room['sector_type'],
-                'id' => $room['roomID']
+                'id' => $room['roomID'],
+                'status' => $room['status'] // Include the status field
             ];
         }
         

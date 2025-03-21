@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
       stock_weapons: 0,
       stock_food: 0,
       stock_technical: 0,
+      roomCount: 0,
       isNewPlayer: false
     }
   };
@@ -72,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
     domElement: gameCanvas,
     fullscreen: true
   });
+
+  // Initialize the player HUD
+  const playerHUD = new PlayerHUD(document.body);
 
   // Resize handler
   function resizeCanvas() {
@@ -601,7 +605,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fetch the current game state from the server
   async function fetchGameState() {
     try {
-      const response = await fetch('api/gameState.php');
+      // Include player ID in the request to get player-specific data
+      const playerID = getPlayerIDFromStorage();
+      const response = await fetch(`api/gameState.php?playerID=${encodeURIComponent(playerID)}`);
       const data = await response.json();
       
       if (data.grid) {
@@ -637,6 +643,20 @@ document.addEventListener('DOMContentLoaded', () => {
           renderGame();
         }
         
+        // If player data is included in the response, update the player state and HUD
+        if (data.player) {
+          // Update player state
+          gameState.player = {
+            ...gameState.player,
+            ...data.player
+          };
+          
+          // Update the HUD
+          playerHUD.update(gameState.player);
+          
+          console.log("Updated player data from server");
+        }
+        
         // Store last update timestamp
         config.lastStateTimestamp = data.timestamp || new Date().getTime();
       }
@@ -655,7 +675,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({
           grid: gameState.grid,
-          selected: gameState.selected
+          selected: gameState.selected,
+          playerID: gameState.player.playerID
         })
       });
       
@@ -721,6 +742,9 @@ document.addEventListener('DOMContentLoaded', () => {
           isNewPlayer: false
         };
         
+        // Update the HUD with player data
+        playerHUD.update(gameState.player);
+        
         // Show welcome back message
         showWelcomeMessage(false);
         
@@ -760,8 +784,12 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.player = {
           ...gameState.player,
           ...data.player,
+          roomCount: 0, // New players have no rooms
           isNewPlayer: true
         };
+        
+        // Update the HUD with player data
+        playerHUD.update(gameState.player);
         
         // Save new player ID to localStorage
         savePlayerIDToStorage(data.player.playerID);

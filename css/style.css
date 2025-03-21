@@ -42,3 +42,57 @@ body, html {
 canvas {
     display: block;
 }
+
+/* Player HUD Styles */
+#player-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 20px;
+  z-index: 100;
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.hud-section {
+  display: flex;
+  align-items: center;
+}
+
+.label {
+  font-weight: bold;
+  margin-right: 8px;
+  color: #FFEB3B; /* Yellow-ish color for labels */
+}
+
+.stock-item {
+  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+  #player-hud {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px;
+  }
+  
+  .hud-section {
+    margin: 5px 10px;
+  }
+  
+  .stocks-section {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

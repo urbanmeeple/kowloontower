@@ -90,14 +90,19 @@ try {
         'selectionCount' => $selectionCount,
         'timestamp' => time()
     ]);
-} catch (Exception $e) {
-    // Rollback the transaction if an error occurred
+} catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    
-    $error = "Error saving selections: " . $e->getMessage();
-    writeLog($error);
-    echo json_encode(['success' => false, 'error' => $error]);
+    writeLog("Database error in saveState.php: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'A database error occurred.']);
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    writeLog("Error in saveState.php: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'An unexpected error occurred.']);
 }
 ?>

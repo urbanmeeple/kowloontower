@@ -638,107 +638,121 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fetch the current game state from the server
   async function fetchGameState() {
     try {
-      // Include player ID in the request to get player-specific data
-      const playerID = getPlayerIDFromStorage();
-      const response = await fetch(`api/gameState.php?playerID=${encodeURIComponent(playerID)}`);
-      const data = await response.json();
-      
-      // Check if the server is signaling that an update is about to occur
-      if (data.updateInProgress && gameState.pendingSelections.length > 0) {
-        // If update is in progress, send our pending selections
-        await sendPendingSelections();
-      }
-      
-      if (data.grid) {
-        // Store next update time if provided
-        if (data.nextUpdateTime) {
-          config.nextUpdateTime = new Date(data.nextUpdateTime);
-          
-          // Calculate time until next update
-          const timeUntilUpdate = config.nextUpdateTime - new Date();
-          
-          // If update is imminent (within 5 seconds), send pending selections
-          if (timeUntilUpdate > 0 && timeUntilUpdate < 5000 && gameState.pendingSelections.length > 0) {
-            console.log("Update is imminent, sending pending selections");
-            await sendPendingSelections();
-          }
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // Timeout after 5 seconds
+
+        const playerID = getPlayerIDFromStorage();
+        const response = await fetch(`api/gameState.php?playerID=${encodeURIComponent(playerID)}`, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Check if the server is signaling that an update is about to occur
+        if (data.updateInProgress && gameState.pendingSelections.length > 0) {
+          // If update is in progress, send our pending selections
+          await sendPendingSelections();
         }
         
-        // Check if the grid has changed
-        let hasChanged = false;
-        
-        // Compare with existing grid
-        if (gameState.grid && gameState.grid.length > 0) {
-          // Simple check - compare JSON strings
-          const gridChanged = JSON.stringify(data.grid) !== JSON.stringify(gameState.grid);
-          hasChanged = gridChanged;
-        } else {
-          // First load or empty grid
-          hasChanged = true;
-        }
-        
-        // Always update the timer when we get a response from the server
-        // This ensures clients stay in sync with server updates
-        // Use ISO date string from server (includes timezone info) as the priority source
-        // Fall back to timestamp if ISO string not available
-        if (data.lastUpdateTime) {
-          playerHUD.setTimerFromServer(data.lastUpdateTime);
-          console.log("Timer updated from server ISO timestamp:", data.lastUpdateTime);
-        } else if (data.lastUpdateTimestamp) {
-          playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
-          console.log("Timer updated from server Unix timestamp:", data.lastUpdateTimestamp);
-        } else {
-          playerHUD.resetUpdateTimer();
-        }
-        
-        // Only update the UI if something has changed
-        if (hasChanged) {
-          console.log("Game state updated from server");
-          
-          // Update the grid with server data
-          gameState.grid = data.grid;
-          
-          // Clear any selections that are now rooms
-          // This prevents selecting spots that became rooms in the last update
-          for (let y = 0; y < config.gridHeight; y++) {
-            for (let x = 0; x < config.gridWidth; x++) {
-              if (gameState.grid[y][x]) {
-                // Remove from selected grid
-                gameState.selected[y][x] = 0;
-                
-                // Remove from pending selections if present
-                gameState.pendingSelections = gameState.pendingSelections.filter(
-                  sel => !(sel.x === x && sel.y === y)
-                );
-              }
+        if (data.grid) {
+          // Store next update time if provided
+          if (data.nextUpdateTime) {
+            config.nextUpdateTime = new Date(data.nextUpdateTime);
+            
+            // Calculate time until next update
+            const timeUntilUpdate = config.nextUpdateTime - new Date();
+            
+            // If update is imminent (within 5 seconds), send pending selections
+            if (timeUntilUpdate > 0 && timeUntilUpdate < 5000 && gameState.pendingSelections.length > 0) {
+              console.log("Update is imminent, sending pending selections");
+              await sendPendingSelections();
             }
           }
           
-          gameState.lastUpdate = new Date();
-          renderGame();
-        }
-        
-        // If player data is included in the response, update the player state and HUD
-        if (data.player) {
-          // Update player state
-          gameState.player = {
-            ...gameState.player,
-            ...data.player
-          };
+          // Check if the grid has changed
+          let hasChanged = false;
           
-          // Update the HUD
-          playerHUD.update(gameState.player);
+          // Compare with existing grid
+          if (gameState.grid && gameState.grid.length > 0) {
+            // Simple check - compare JSON strings
+            const gridChanged = JSON.stringify(data.grid) !== JSON.stringify(gameState.grid);
+            hasChanged = gridChanged;
+          } else {
+            // First load or empty grid
+            hasChanged = true;
+          }
           
-          console.log("Updated player data from server");
+          // Always update the timer when we get a response from the server
+          // This ensures clients stay in sync with server updates
+          // Use ISO date string from server (includes timezone info) as the priority source
+          // Fall back to timestamp if ISO string not available
+          if (data.lastUpdateTime) {
+            playerHUD.setTimerFromServer(data.lastUpdateTime);
+            console.log("Timer updated from server ISO timestamp:", data.lastUpdateTime);
+          } else if (data.lastUpdateTimestamp) {
+            playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
+            console.log("Timer updated from server Unix timestamp:", data.lastUpdateTimestamp);
+          } else {
+            playerHUD.resetUpdateTimer();
+          }
+          
+          // Only update the UI if something has changed
+          if (hasChanged) {
+            console.log("Game state updated from server");
+            
+            // Update the grid with server data
+            gameState.grid = data.grid;
+            
+            // Clear any selections that are now rooms
+            // This prevents selecting spots that became rooms in the last update
+            for (let y = 0; y < config.gridHeight; y++) {
+              for (let x = 0; x < config.gridWidth; x++) {
+                if (gameState.grid[y][x]) {
+                  // Remove from selected grid
+                  gameState.selected[y][x] = 0;
+                  
+                  // Remove from pending selections if present
+                  gameState.pendingSelections = gameState.pendingSelections.filter(
+                    sel => !(sel.x === x && sel.y === y)
+                  );
+                }
+              }
+            }
+            
+            gameState.lastUpdate = new Date();
+            renderGame();
+          }
+          
+          // If player data is included in the response, update the player state and HUD
+          if (data.player) {
+            // Update player state
+            gameState.player = {
+              ...gameState.player,
+              ...data.player
+            };
+            
+            // Update the HUD
+            playerHUD.update(gameState.player);
+            
+            console.log("Updated player data from server");
+          }
+          
+          // Store last update timestamp
+          config.lastStateTimestamp = data.timestamp || new Date().getTime();
         }
-        
-        // Store last update timestamp
-        config.lastStateTimestamp = data.timestamp || new Date().getTime();
-      }
     } catch (error) {
-      console.error('Error fetching game state:', error);
+        console.error('Error fetching game state:', error);
+        if (error.name === 'AbortError') {
+            console.error('Request timed out.');
+        }
     }
-  }
+}
   
   // Send pending selections to the server during an update
   async function sendPendingSelections() {
@@ -776,14 +790,28 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Periodically check for updates
   function startAutoUpdates() {
-    // Initial fetch
-    fetchGameState();
-    
-    // Set up interval for periodic updates
-    setInterval(() => {
-      fetchGameState();
-    }, config.updateInterval);
-  }
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    async function updateLoop() {
+        if (retryCount >= maxRetries) {
+            console.error('Max retries reached. Stopping updates.');
+            return;
+        }
+
+        try {
+            await fetchGameState();
+            retryCount = 0; // Reset retry count on success
+        } catch (error) {
+            retryCount++;
+            console.error(`Retrying (${retryCount}/${maxRetries})...`);
+        } finally {
+            setTimeout(updateLoop, config.updateInterval);
+        }
+    }
+
+    updateLoop();
+}
   
   // Player Management Functions
   /**

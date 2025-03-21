@@ -190,7 +190,11 @@ function addPlannedRooms($numPlannedRooms) {
     // Define possible sector types
     $sectorTypes = ['housing', 'entertainment', 'weapons', 'food', 'technical'];
 
-    while ($addedRooms < $numPlannedRooms) {
+    // Ensure no infinite loops in planned room generation
+    $maxAttempts = 100; // Limit attempts to prevent infinite loops
+    $attempts = 0;
+    while ($addedRooms < $numPlannedRooms && $attempts < $maxAttempts) {
+        $attempts++;
         // Randomly select a location adjacent to constructed rooms or in the lowest row
         $x = rand(0, 19); // Grid width is 20
         $y = rand(0, 29); // Grid height is 30
@@ -239,10 +243,25 @@ function addPlannedRooms($numPlannedRooms) {
         }
     }
 
+    if ($attempts >= $maxAttempts) {
+        writeLog("Reached maximum attempts while adding planned rooms.");
+    }
+
     return $addedRooms;
 }
 
 try {
+    // Prevent overlapping cron jobs using a lock file
+    $lockFile = dirname(__FILE__) . '/../temp/updateState.lock';
+    if (file_exists($lockFile)) {
+        $lockAge = time() - filemtime($lockFile);
+        if ($lockAge < 60) { // If lock file is less than 60 seconds old, exit
+            writeLog("Cron job already running. Exiting.");
+            exit;
+        }
+    }
+    touch($lockFile); // Create or update lock file
+
     // Get current UTC datetime for updating the game state
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
     
@@ -285,9 +304,18 @@ try {
         'totalRooms' => $totalRooms,
         'lastUpdateTime' => $currentUtcDateTime
     ]);
+    unlink($lockFile); // Remove lock file after successful execution
+} catch (PDOException $e) {
+    writeLog("Database error in updateState.php: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'A database error occurred.']);
 } catch (Exception $e) {
-    $msg = "Error updating game state: " . $e->getMessage();
-    writeLog($msg);
-    echo json_encode(['error' => $msg]);
+    writeLog("Error in updateState.php: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'An unexpected error occurred.']);
+} finally {
+    if (file_exists($lockFile)) {
+        unlink($lockFile); // Ensure lock file is removed in case of errors
+    }
 }
 ?>

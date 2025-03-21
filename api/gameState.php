@@ -170,32 +170,35 @@ function getNextUpdateTime() {
 }
 
 try {
+    // Add a timeout to prevent long-running queries
+    $pdo->setAttribute(PDO::ATTR_TIMEOUT, 5);
+
     // Get player ID from request parameters (if provided)
     $playerID = isset($_GET['playerID']) ? $_GET['playerID'] : null;
-    
+
     // Grid dimensions
     $gridHeight = 30;
     $gridWidth = 20;
-    
+
     // Initialize empty grid and selections grid
     $grid = array_fill(0, $gridHeight, array_fill(0, $gridWidth, null));
     $selected = array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0));
-    
+
     // Get rooms from the database
     $rooms = getRooms();
-    
-    // Fill in the grid with room data
+
+    // Ensure no infinite loops in grid processing
     foreach ($rooms as $y => $row) {
+        if ($y >= $gridHeight) break; // Prevent out-of-bounds processing
         foreach ($row as $x => $room) {
-            if ($y < $gridHeight && $x < $gridWidth) {
-                $grid[$y][$x] = $room;
-            }
+            if ($x >= $gridWidth) break; // Prevent out-of-bounds processing
+            $grid[$y][$x] = $room;
         }
     }
-    
+
     // Get selections from the database
     $selections = getSelections();
-    
+
     // Fill in the selections grid
     foreach ($selections as $y => $row) {
         foreach ($row as $x => $playerID) {
@@ -204,22 +207,22 @@ try {
             }
         }
     }
-    
+
     // Get the last update time
     $lastUpdateTime = getLastUpdateTime();
-    
+
     // Explicitly handle the timestamp as UTC when converting to Unix timestamp
     $lastUpdateTimestamp = $lastUpdateTime ? strtotime($lastUpdateTime . ' UTC') : time();
-    
+
     // Ensure the timestamp is treated as UTC and includes timezone info
     $lastUpdateTimeIso = $lastUpdateTime ? gmdate('c', strtotime($lastUpdateTime . ' UTC')) : gmdate('c');
-    
+
     // Check if an update is in progress
     $updateInProgress = isUpdateInProgress();
-    
+
     // Calculate next update time
     $nextUpdateTime = getNextUpdateTime();
-    
+
     // Build the state object
     $state = [
         'grid' => $grid,
@@ -230,7 +233,7 @@ try {
         'updateInProgress' => $updateInProgress,
         'nextUpdateTime' => $nextUpdateTime
     ];
-    
+
     // Add player data if playerID is provided
     if ($playerID) {
         $playerData = getPlayerData($playerID);
@@ -238,10 +241,15 @@ try {
             $state['player'] = $playerData;
         }
     }
-    
+
     echo json_encode($state);
+} catch (PDOException $e) {
+    writeLog("Database error in gameState.php: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'A database error occurred. Please try again later.']);
 } catch (Exception $e) {
     writeLog("Error in gameState.php: " . $e->getMessage());
-    echo json_encode(['error' => $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['error' => 'An unexpected error occurred. Please try again later.']);
 }
 ?>

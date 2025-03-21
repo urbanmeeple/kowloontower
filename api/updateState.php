@@ -163,6 +163,85 @@ function processSelections() {
     return $roomsCreated;
 }
 
+/**
+ * Add new planned rooms to the game
+ * 
+ * @param int $numPlannedRooms Number of planned rooms to add
+ * @return int Number of planned rooms successfully added
+ */
+function addPlannedRooms($numPlannedRooms) {
+    global $pdo;
+    
+    $addedRooms = 0;
+    $currentUtcDateTime = gmdate('Y-m-d H:i:s');
+    
+    // Fetch all constructed rooms
+    $constructedRooms = $pdo->query("
+        SELECT location_x, location_y 
+        FROM rooms 
+        WHERE status = 'constructed'
+    ")->fetchAll();
+
+    // If no constructed rooms exist, only allow placement in the lowest row
+    $constructedCoords = array_map(function($room) {
+        return ['x' => $room['location_x'], 'y' => $room['location_y']];
+    }, $constructedRooms);
+
+    // Define possible sector types
+    $sectorTypes = ['housing', 'entertainment', 'weapons', 'food', 'technical'];
+
+    while ($addedRooms < $numPlannedRooms) {
+        // Randomly select a location adjacent to constructed rooms or in the lowest row
+        $x = rand(0, 19); // Grid width is 20
+        $y = rand(0, 29); // Grid height is 30
+
+        $isAdjacent = false;
+
+        // Check adjacency to constructed rooms
+        foreach ($constructedCoords as $coord) {
+            if (abs($coord['x'] - $x) <= 1 && abs($coord['y'] - $y) <= 1) {
+                $isAdjacent = true;
+                break;
+            }
+        }
+
+        // Allow placement in the lowest row if not adjacent
+        if ($y === 29 || $isAdjacent) {
+            // Check if the location is already occupied
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as count 
+                FROM rooms 
+                WHERE location_x = :x AND location_y = :y
+            ");
+            $stmt->execute(['x' => $x, 'y' => $y]);
+            $isOccupied = $stmt->fetch()['count'] > 0;
+
+            if (!$isOccupied) {
+                // Assign a random sector type
+                $sectorType = $sectorTypes[array_rand($sectorTypes)];
+
+                // Insert the planned room
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO rooms 
+                    (sector_type, location_x, location_y, maintenance_level, status, created_datetime) 
+                    VALUES 
+                    (:sector_type, :location_x, :location_y, 1.0, 'planned', :created_datetime)
+                ");
+                $insertStmt->execute([
+                    'sector_type' => $sectorType,
+                    'location_x' => $x,
+                    'location_y' => $y,
+                    'created_datetime' => $currentUtcDateTime
+                ]);
+
+                $addedRooms++;
+            }
+        }
+    }
+
+    return $addedRooms;
+}
+
 try {
     // Get current UTC datetime for updating the game state
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
@@ -185,6 +264,13 @@ try {
         $insertStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]);
         writeLog("Initialized game_state table with first record");
     }
+
+    // Add new planned rooms
+    $numPlannedRooms = 5; // Configurable number of planned rooms
+    $plannedRoomsAdded = addPlannedRooms($numPlannedRooms);
+
+    // Log the number of planned rooms added
+    writeLog("Added {$plannedRoomsAdded} planned rooms.");
 
     // Count all rooms for logging
     $roomCountStmt = $pdo->query("SELECT COUNT(*) as total_rooms FROM rooms");

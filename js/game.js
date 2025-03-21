@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     colors: {
       background: {
         top: '#FFEB3B',    // Yellow for top
-        bottom: '#4CAF50', // Green for bottom
         brightness: 1.0    // Initial brightness (1.0 = 100%)
       },
       grid: '#333333',     // Grid line color
@@ -152,26 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     backgroundTwo.update();
   }
   
-  // Helper function to mix colors for smoother gradient
-  function mixColors(color1, color2, ratio) {
-    // Convert hex to RGB
-    let r1 = parseInt(color1.slice(1, 3), 16);
-    let g1 = parseInt(color1.slice(3, 5), 16);
-    let b1 = parseInt(color1.slice(5, 7), 16);
-    
-    let r2 = parseInt(color2.slice(1, 3), 16);
-    let g2 = parseInt(color2.slice(3, 5), 16);
-    let b2 = parseInt(color2.slice(5, 7), 16);
-    
-    // Mix colors
-    let r = Math.round(r1 * (1 - ratio) + r2 * ratio);
-    let g = Math.round(g1 * (1 - ratio) + g2 * ratio);
-    let b = Math.round(b1 * (1 - ratio) + b2 * ratio);
-    
-    // Convert back to hex
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  }
-  
   // Helper function to adjust color brightness
   function adjustBrightness(hexColor, factor) {
     // Convert hex to RGB
@@ -237,46 +216,65 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw rooms and selections
     for (let y = 0; y < config.gridHeight; y++) {
       for (let x = 0; x < config.gridWidth; x++) {
-        // Draw a room if there's one at this location
-        if (gameState.grid[y][x]) {
-          const roomData = gameState.grid[y][x];
+        const roomData = gameState.grid[y][x];
+        if (roomData) {
           const roomX = x * config.cellSize + config.cellSize / 2;
           const roomY = y * config.cellSize + config.cellSize / 2;
-          
-          // Create room rectangle
-          const room = new Two.Rectangle(
-            roomX, 
-            roomY,
-            config.cellSize - 2, 
-            config.cellSize - 2
-          );
-          room.fill = config.colors.room;
-          room.noStroke();
-          gameGroup.add(room);
-          
-          // Add sector icon for the room
-          const sectorType = roomData.type || 'default';
-          const icon = sectorIcons[sectorType] || sectorIcons.default;
-          
-          // Create text element for the icon
-          const iconSize = Math.min(14 * (1/config.view.zoom), config.cellSize * 0.7);
-          const iconText = new Two.Text(
-            icon,
-            roomX,
-            roomY,
-            {
+
+          if (roomData.status === 'constructed') {
+            // Draw constructed room
+            const room = new Two.Rectangle(
+              roomX,
+              roomY,
+              config.cellSize - 2,
+              config.cellSize - 2
+            );
+            room.fill = config.colors.room;
+            room.noStroke();
+            gameGroup.add(room);
+
+            // Add sector icon
+            const sectorType = roomData.type || 'default';
+            const icon = sectorIcons[sectorType] || sectorIcons.default;
+            const iconSize = Math.min(14 * (1 / config.view.zoom), config.cellSize * 0.7);
+            const iconText = new Two.Text(icon, roomX, roomY, {
               size: iconSize,
               alignment: 'center',
               baseline: 'middle',
               style: 'normal',
               family: 'Arial'
-            }
-          );
-          iconText.fill = '#FFFFFF'; // White text
-          gameGroup.add(iconText);
-        } 
-        // Draw selected space (transparent) if the space is selected
-        else if (gameState.selected[y][x] === 1) {
+            });
+            iconText.fill = '#FFFFFF'; // White text
+            gameGroup.add(iconText);
+          } else if (roomData.status === 'planned') {
+            // Draw planned room
+            const plannedRoom = new Two.Rectangle(
+              roomX,
+              roomY,
+              config.cellSize - 2,
+              config.cellSize - 2
+            );
+            plannedRoom.fill = 'rgba(255, 0, 0, 0.2)'; // Transparent red fill
+            plannedRoom.stroke = '#FF0000'; // Solid red border
+            plannedRoom.linewidth = 2;
+            gameGroup.add(plannedRoom);
+
+            // Add semi-transparent sector icon
+            const sectorType = roomData.type || 'default';
+            const icon = sectorIcons[sectorType] || sectorIcons.default;
+            const iconSize = Math.min(14 * (1 / config.view.zoom), config.cellSize * 0.7);
+            const iconText = new Two.Text(icon, roomX, roomY, {
+              size: iconSize,
+              alignment: 'center',
+              baseline: 'middle',
+              style: 'normal',
+              family: 'Arial'
+            });
+            iconText.fill = 'rgba(255, 255, 255, 0.5)'; // Semi-transparent white text
+            gameGroup.add(iconText);
+          }
+        } else if (gameState.selected[y][x] === 1) {
+          // Draw selected space
           const selectedSpace = new Two.Rectangle(
             x * config.cellSize + config.cellSize / 2, 
             y * config.cellSize + config.cellSize / 2,
@@ -783,29 +781,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (error) {
       console.error('Error sending selections:', error);
-    }
-  }
-  
-  // Save the game state to the server (now just saves selections)
-  async function saveGameState() {
-    try {
-      const response = await fetch('api/saveState.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          selected: gameState.selected,
-          playerID: gameState.player.playerID
-        })
-      });
-      
-      const data = await response.json();
-      if (!data.success) {
-        console.error('Error saving selections:', data.error);
-      }
-    } catch (error) {
-      console.error('Error saving selections:', error);
     }
   }
   

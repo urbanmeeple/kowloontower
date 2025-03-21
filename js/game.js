@@ -220,15 +220,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roomData) {
           const roomX = x * config.cellSize + config.cellSize / 2;
           const roomY = y * config.cellSize + config.cellSize / 2;
+          const roomSize = config.cellSize - 2; // Room rectangle size
+          const iconSize = roomSize * 0.8; // Icon size as 80% of the room size
 
           if (roomData.status === 'constructed') {
             // Draw constructed room
-            const room = new Two.Rectangle(
-              roomX,
-              roomY,
-              config.cellSize - 2,
-              config.cellSize - 2
-            );
+            const room = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
             room.fill = config.colors.room;
             room.noStroke();
             gameGroup.add(room);
@@ -236,9 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add sector icon
             const sectorType = roomData.type || 'default';
             const icon = sectorIcons[sectorType] || sectorIcons.default;
-            const iconSize = Math.min(14 * (1 / config.view.zoom), config.cellSize * 0.7);
             const iconText = new Two.Text(icon, roomX, roomY, {
-              size: iconSize,
+              size: iconSize / config.view.zoom, // Scale icon size with zoom
               alignment: 'center',
               baseline: 'middle',
               style: 'normal',
@@ -248,12 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameGroup.add(iconText);
           } else if (roomData.status === 'planned') {
             // Draw planned room
-            const plannedRoom = new Two.Rectangle(
-              roomX,
-              roomY,
-              config.cellSize - 2,
-              config.cellSize - 2
-            );
+            const plannedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
             plannedRoom.fill = 'rgba(255, 0, 0, 0.2)'; // Transparent red fill
             plannedRoom.stroke = '#FF0000'; // Solid red border
             plannedRoom.linewidth = 2;
@@ -262,9 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add semi-transparent sector icon
             const sectorType = roomData.type || 'default';
             const icon = sectorIcons[sectorType] || sectorIcons.default;
-            const iconSize = Math.min(14 * (1 / config.view.zoom), config.cellSize * 0.7);
             const iconText = new Two.Text(icon, roomX, roomY, {
-              size: iconSize,
+              size: iconSize / config.view.zoom, // Scale icon size with zoom
               alignment: 'center',
               baseline: 'middle',
               style: 'normal',

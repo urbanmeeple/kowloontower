@@ -208,6 +208,9 @@ try {
     $lastUpdateTime = getLastUpdateTime();
     $lastUpdateTimestamp = $lastUpdateTime ? strtotime($lastUpdateTime) : time();
     
+    // Ensure the timestamp is treated as UTC
+    $lastUpdateTimeIso = $lastUpdateTime ? gmdate('c', strtotime($lastUpdateTime)) : gmdate('c');
+    
     // Check if an update is in progress
     $updateInProgress = isUpdateInProgress();
     
@@ -219,7 +222,7 @@ try {
         'grid' => $grid,
         'selected' => $selected,
         'timestamp' => time(),
-        'lastUpdateTime' => $lastUpdateTime,
+        'lastUpdateTime' => $lastUpdateTimeIso, // ISO format with UTC timezone marker
         'lastUpdateTimestamp' => $lastUpdateTimestamp,
         'updateInProgress' => $updateInProgress,
         'nextUpdateTime' => $nextUpdateTime

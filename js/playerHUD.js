@@ -187,37 +187,43 @@ class PlayerHUD {
     const timerElement = document.getElementById('update-timer');
     if (!timerElement) return;
     
-    // Calculate elapsed time
+    // Calculate elapsed timein milliseconds
     const elapsedSeconds = Math.floor((Date.now() - this.lastUpdateTime) / 1000);
     const minutes = Math.floor(elapsedSeconds / 60);
-    const seconds = elapsedSeconds % 60;
-    
-    // Format as MM:SS
+    const seconds = elapsedSeconds % 60;we're dealing with UTC consistently)
+    const elapsedMilliseconds = now - this.lastUpdateTime;
+    // Format as MM:SSds = Math.floor(elapsedMilliseconds / 1000);
     const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    timerElement.textContent = timeString;
-    
+    timerElement.textContent = timeString;isplay
+    const minutes = Math.floor(elapsedSeconds / 60);
     // Update timer styling based on elapsed time
     if (elapsedSeconds < 30) {
       // Fresh: Green (0-30s)
-      timerElement.className = 'timer-fresh';
-    } else if (elapsedSeconds < 50) {
+      timerElement.className = 'timer-fresh';padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else if (elapsedSeconds < 50) {ring;
       // Warning: Orange (30-50s)
-      timerElement.className = 'timer-warning';
-    } else {
+      timerElement.className = 'timer-warning';me
+    } else {sedSeconds < 30) {
       // Critical: Red with larger font (50s+)
       timerElement.className = 'timer-critical';
-    }
-  }
-  
-  /**
+    } else if (elapsedSeconds < 50) {
+  }   // Warning: Orange (30-50s)
+      timerElement.className = 'timer-warning';
+  /** else {
    * Reset the update timer (called when game state is updated)
-   */
+   */ timerElement.className = 'timer-critical';
   resetUpdateTimer() {
     this.lastUpdateTime = Date.now();
     
     // Update display immediately
-    this.updateTimerDisplay();
-    
+    this.updateTimerDisplay();alled when game state is updated)
+    /
+    console.log('Update timer reset');
+  } this.lastUpdateTime = Date.now();
+}   
+    // Update display immediately
+// Export the PlayerHUD class for global access
+window.PlayerHUD = PlayerHUD;
     console.log('Update timer reset');
   }
 }

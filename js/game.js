@@ -31,14 +31,31 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     // Auto-update settings
     updateInterval: 10000, // Check for updates every 10 seconds
-    lastStateTimestamp: null // Track when we last received a state update
+    lastStateTimestamp: null, // Track when we last received a state update
+    // Player settings
+    player: {
+      welcomeMessageDuration: 5000, // Duration to show welcome message in milliseconds
+      storageKey: 'kowloonTowerPlayerID' // Key used in localStorage
+    }
   };
 
   // Game state with selected cells and rooms
   let gameState = {
     grid: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
     selected: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
-    lastUpdate: null
+    lastUpdate: null,
+    // Player state
+    player: {
+      playerID: null,
+      username: null,
+      money: 0,
+      stock_housing: 0,
+      stock_entertainment: 0,
+      stock_weapons: 0,
+      stock_food: 0,
+      stock_technical: 0,
+      isNewPlayer: false
+    }
   };
 
   // Set up the canvas and Two.js instances
@@ -662,10 +679,195 @@ document.addEventListener('DOMContentLoaded', () => {
     }, config.updateInterval);
   }
   
+  // Player Management Functions
+  
+  /**
+   * Check if a player ID exists in local storage
+   * @returns {string|null} The player ID or null if not found
+   */
+  function getPlayerIDFromStorage() {
+    return localStorage.getItem(config.player.storageKey);
+  }
+
+  /**
+   * Save player ID to local storage
+   * @param {string} playerID - The player ID to save
+   */
+  function savePlayerIDToStorage(playerID) {
+    localStorage.setItem(config.player.storageKey, playerID);
+  }
+
+  /**
+   * Fetch existing player data from server
+   * @param {string} playerID - The player ID to fetch
+   * @returns {Promise<boolean>} Whether player was successfully fetched
+   */
+  async function fetchPlayerData(playerID) {
+    try {
+      const response = await fetch(`api/player.php?id=${encodeURIComponent(playerID)}`);
+      
+      // Check if response is ok (status in the range 200-299)
+      if (!response.ok) {
+        return false; // Player not found or other error
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.player) {
+        // Update player state with fetched data
+        gameState.player = {
+          ...gameState.player,
+          ...data.player,
+          isNewPlayer: false
+        };
+        
+        // Show welcome back message
+        showWelcomeMessage(false);
+        
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Error fetching player data:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Create a new player on the server
+   * @returns {Promise<boolean>} Whether player was successfully created
+   */
+  async function createNewPlayer() {
+    try {
+      const response = await fetch('api/player.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}) // Empty body as server generates all values
+      });
+      
+      if (!response.ok) {
+        console.error('Server error when creating player:', await response.text());
+        return false;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.player) {
+        // Update player state with new player data
+        gameState.player = {
+          ...gameState.player,
+          ...data.player,
+          isNewPlayer: true
+        };
+        
+        // Save new player ID to localStorage
+        savePlayerIDToStorage(data.player.playerID);
+        
+        // Show welcome message for new player
+        showWelcomeMessage(true);
+        
+        return true;
+      } else {
+        console.error('Failed to create new player:', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error creating new player:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Show welcome message to the player
+   * @param {boolean} isNewPlayer - Whether this is a new player
+   */
+  function showWelcomeMessage(isNewPlayer) {
+    // Create welcome message element
+    const welcomeMsg = document.createElement('div');
+    welcomeMsg.className = 'welcome-message';
+    
+    // Style the message element
+    Object.assign(welcomeMsg.style, {
+      position: 'fixed',
+      top: '20px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      color: 'white',
+      padding: '15px 20px',
+      borderRadius: '8px',
+      zIndex: '1000',
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+      fontSize: '16px',
+      transition: 'opacity 0.5s ease-out',
+      opacity: '1',
+      textAlign: 'center'
+    });
+    
+    // Set message content based on whether player is new or returning
+    if (isNewPlayer) {
+      welcomeMsg.textContent = `Welcome to Kowloon Tower, ${gameState.player.username}!`;
+    } else {
+      welcomeMsg.textContent = `Welcome back, ${gameState.player.username}!`;
+    }
+    
+    // Add to document
+    document.body.appendChild(welcomeMsg);
+    
+    // Remove after specified duration
+    setTimeout(() => {
+      welcomeMsg.style.opacity = '0';
+      
+      // Remove element after transition completes
+      setTimeout(() => {
+        if (welcomeMsg.parentNode) {
+          document.body.removeChild(welcomeMsg);
+        }
+      }, 500);
+    }, config.player.welcomeMessageDuration);
+  }
+
+  /**
+   * Initialize player - checks localStorage and fetches or creates player as needed
+   * @returns {Promise<void>}
+   */
+  async function initializePlayer() {
+    // Check if player ID exists in localStorage
+    const storedPlayerID = getPlayerIDFromStorage();
+    
+    if (storedPlayerID) {
+      console.log('Found stored player ID:', storedPlayerID);
+      
+      // Try to fetch player data
+      const playerFetched = await fetchPlayerData(storedPlayerID);
+      
+      if (!playerFetched) {
+        console.log('Stored player not found in database, creating new player');
+        // If player not found in database, create a new one
+        await createNewPlayer();
+      }
+    } else {
+      console.log('No player ID in storage, creating new player');
+      // No stored player ID, create a new player
+      await createNewPlayer();
+    }
+    
+    // Log player state for debugging
+    console.log('Player initialized:', gameState.player);
+  }
+
   // Initialize the game
   function initGame() {
     resizeCanvas();
-    startAutoUpdates();
+    
+    // Initialize player first (async operation)
+    initializePlayer().then(() => {
+      // Once player is initialized, start game updates
+      startAutoUpdates();
+    });
     
     // Set up event listeners
     window.addEventListener('resize', resizeCanvas);

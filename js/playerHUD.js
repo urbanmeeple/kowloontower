@@ -146,17 +146,34 @@ class PlayerHUD {
     
     // If serverTimestamp is a string (ISO date), convert to timestamp
     if (typeof serverTimestamp === 'string') {
+      // Parse ISO date string (with timezone info)
       timestamp = new Date(serverTimestamp).getTime();
+      console.log('Parsed ISO date string to timestamp:', timestamp);
     } else {
       // If it's already a Unix timestamp (seconds), convert to milliseconds
       timestamp = serverTimestamp * 1000;
+      console.log('Converted Unix timestamp to milliseconds:', timestamp);
     }
     
     // Only update if the timestamp is valid
     if (!isNaN(timestamp) && timestamp > 0) {
+      // Add debug info to help diagnose any remaining issues
+      const now = Date.now();
+      const diff = now - timestamp;
+      const diffMinutes = Math.floor(diff / 60000);
+      const diffSeconds = Math.floor((diff % 60000) / 1000);
+      
+      console.log('Current time (client):', new Date(now).toISOString());
+      console.log('Server update time:', new Date(timestamp).toISOString());
+      console.log(`Time difference: ${diffMinutes} minutes, ${diffSeconds} seconds`);
+      
       this.lastUpdateTime = timestamp;
       this.updateTimerDisplay();
-      console.log('Timer set from server timestamp:', new Date(timestamp).toISOString());
+      
+      // Log timer setting with clear format for debugging
+      console.log('Timer set from server timestamp:', 
+                  new Date(timestamp).toISOString(), 
+                  `(${Math.floor((now - timestamp)/1000)} seconds ago)`);
     } else {
       console.warn('Invalid server timestamp:', serverTimestamp);
     }

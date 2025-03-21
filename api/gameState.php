@@ -206,10 +206,12 @@ try {
     
     // Get the last update time
     $lastUpdateTime = getLastUpdateTime();
-    $lastUpdateTimestamp = $lastUpdateTime ? strtotime($lastUpdateTime) : time();
     
-    // Ensure the timestamp is treated as UTC
-    $lastUpdateTimeIso = $lastUpdateTime ? gmdate('c', strtotime($lastUpdateTime)) : gmdate('c');
+    // Explicitly handle the timestamp as UTC when converting to Unix timestamp
+    $lastUpdateTimestamp = $lastUpdateTime ? strtotime($lastUpdateTime . ' UTC') : time();
+    
+    // Ensure the timestamp is treated as UTC and includes timezone info
+    $lastUpdateTimeIso = $lastUpdateTime ? gmdate('c', strtotime($lastUpdateTime . ' UTC')) : gmdate('c');
     
     // Check if an update is in progress
     $updateInProgress = isUpdateInProgress();

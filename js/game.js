@@ -691,9 +691,14 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Always update the timer when we get a response from the server
         // This ensures clients stay in sync with server updates
-        if (data.lastUpdateTimestamp) {
+        // Use ISO date string from server (includes timezone info) as the priority source
+        // Fall back to timestamp if ISO string not available
+        if (data.lastUpdateTime) {
+          playerHUD.setTimerFromServer(data.lastUpdateTime);
+          console.log("Timer updated from server ISO timestamp:", data.lastUpdateTime);
+        } else if (data.lastUpdateTimestamp) {
           playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
-          console.log("Timer updated from server timestamp, even if grid hasn't changed");
+          console.log("Timer updated from server Unix timestamp:", data.lastUpdateTimestamp);
         } else {
           playerHUD.resetUpdateTimer();
         }

@@ -17,6 +17,11 @@ class PlayerHUD {
     this.lastUpdateTime = Date.now();
     this.timerInterval = null;
     
+    // Constants for update timing (in milliseconds)
+    this.ESTIMATED_UPDATE_INTERVAL = 60 * 1000; // One minute in milliseconds
+    this.WARNING_THRESHOLD_PERCENT = 50; // 50% of the update interval
+    this.CRITICAL_THRESHOLD_PERCENT = 75; // 75% of the update interval
+    
     // Initial player data structure
     this.playerData = {
       username: 'Loading...',
@@ -219,15 +224,18 @@ class PlayerHUD {
     const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     timerElement.textContent = timeString;
     
-    // Update timer styling based on elapsed time
-    if (elapsedSeconds < 30) {
-      // Fresh: Green (0-30s)
+    // Calculate percentage of estimated update interval that has elapsed
+    const elapsedPercent = (elapsedMilliseconds / this.ESTIMATED_UPDATE_INTERVAL) * 100;
+    
+    // Update timer styling based on elapsed percentage
+    if (elapsedPercent < this.WARNING_THRESHOLD_PERCENT) {
+      // Fresh: Green (below 50% of update interval)
       timerElement.className = 'timer-fresh';
-    } else if (elapsedSeconds < 50) {
-      // Warning: Orange (30-50s)
+    } else if (elapsedPercent < this.CRITICAL_THRESHOLD_PERCENT) {
+      // Warning: Orange (between 50% and 75% of update interval)
       timerElement.className = 'timer-warning';
     } else {
-      // Critical: Red with larger font (50s+)
+      // Critical: Red with larger font (above 75% of update interval)
       timerElement.className = 'timer-critical';
     }
   }

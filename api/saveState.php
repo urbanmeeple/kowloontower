@@ -15,8 +15,8 @@ function writeLog($message) {
 // Get the POST data
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($data['grid']) || !isset($data['playerID'])) {
-    $error = "Missing required data (grid or playerID)";
+if (!isset($data['selected']) || !isset($data['playerID'])) {
+    $error = "Missing required data (selections or playerID)";
     writeLog($error);
     echo json_encode(['success' => false, 'error' => $error]);
     exit;
@@ -36,60 +36,67 @@ try {
         exit;
     }
     
-    // Get the previous state to compare with
-    $prevStmt = $pdo->query("SELECT state FROM tower_state ORDER BY updated_at DESC LIMIT 1");
-    $prevRow = $prevStmt->fetch();
-    
-    if ($prevRow) {
-        $prevState = json_decode($prevRow['state'], true);
-    } else {
-        // Initial empty state if no previous state exists
-        $gridHeight = 30;
-        $gridWidth = 20;
-        $prevState = [
-            'grid' => array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0)),
-            'selected' => array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0)),
-            'selectionOwners' => array_fill(0, $gridHeight, array_fill(0, $gridWidth, null))
-        ];
-    }
-    
-    // Initialize or get selection owners tracking
-    if (!isset($prevState['selectionOwners'])) {
-        $gridHeight = count($data['grid']);
-        $gridWidth = count($data['grid'][0]);
-        $prevState['selectionOwners'] = array_fill(0, $gridHeight, array_fill(0, $gridWidth, null));
-    }
-    
     // Track new selections by this player
     $selectionCount = 0;
-    $selectionOwners = $prevState['selectionOwners'];
+    $currentUtcDateTime = gmdate('Y-m-d H:i:s');
+    
+    // Begin transaction for database consistency
+    $pdo->beginTransaction();
+    
+    // First, clean up any unprocessed selections by this player
+    $cleanupStmt = $pdo->prepare("DELETE FROM selected_spaces WHERE playerID = :playerID AND processed = 0");
+    $cleanupStmt->execute(['playerID' => $playerID]);
+    
+    // Now add the new selections
+    $insertStmt = $pdo->prepare("
+        INSERT INTO selected_spaces 
+        (playerID, location_x, location_y, selection_datetime, processed) 
+        VALUES 
+        (:playerID, :x, :y, :datetime, 0)
+    ");
     
     for ($y = 0; $y < count($data['selected']); $y++) {
         for ($x = 0; $x < count($data['selected'][$y]); $x++) {
-            // If this is a newly selected cell
-            if ($data['selected'][$y][$x] === 1 && 
-                (!isset($prevState['selected'][$y][$x]) || $prevState['selected'][$y][$x] === 0)) {
-                $selectionOwners[$y][$x] = $playerID;
-                $selectionCount++;
+            if ($data['selected'][$y][$x] === 1) {
+                // Check if a room or existing selection already exists at this location
+                $checkStmt = $pdo->prepare("
+                    SELECT 
+                        (SELECT COUNT(*) FROM rooms WHERE location_x = :x AND location_y = :y) as room_count,
+                        (SELECT COUNT(*) FROM selected_spaces WHERE location_x = :x AND location_y = :y AND processed = 0) as selection_count
+                ");
+                $checkStmt->execute(['x' => $x, 'y' => $y]);
+                $result = $checkStmt->fetch();
+                
+                if ($result['room_count'] == 0 && $result['selection_count'] == 0) {
+                    // Location is free, add the selection
+                    $insertStmt->execute([
+                        'playerID' => $playerID,
+                        'x' => $x,
+                        'y' => $y,
+                        'datetime' => $currentUtcDateTime
+                    ]);
+                    $selectionCount++;
+                }
             }
         }
     }
     
-    // Add owner information to the data
-    $data['selectionOwners'] = $selectionOwners;
+    // Commit the transaction
+    $pdo->commit();
     
-    // Add a timestamp to track when this state was created
-    $data['timestamp'] = time();
-    
-    // Save the updated state to the database
-    $state = json_encode($data);
-    $stmt = $pdo->prepare("INSERT INTO tower_state (state) VALUES (:state)");
-    $stmt->execute(['state' => $state]);
-    
-    writeLog("Player $playerID saved state with $selectionCount new selections");
-    echo json_encode(['success' => true, 'timestamp' => $data['timestamp']]);
+    writeLog("Player $playerID saved $selectionCount new selections");
+    echo json_encode([
+        'success' => true, 
+        'selectionCount' => $selectionCount,
+        'timestamp' => time()
+    ]);
 } catch (Exception $e) {
-    $error = "Error saving game state: " . $e->getMessage();
+    // Rollback the transaction if an error occurred
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    
+    $error = "Error saving selections: " . $e->getMessage();
     writeLog($error);
     echo json_encode(['success' => false, 'error' => $error]);
 }

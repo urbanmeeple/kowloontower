@@ -21,6 +21,8 @@ build/
 *.tmp
 *.swp
 tmp/
+temp/
+temp/*.json
 
 # Ignore OS generated files
 .DS_Store

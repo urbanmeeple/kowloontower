@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto-update settings
     updateInterval: 10000, // Check for updates every 10 seconds
     lastStateTimestamp: null, // Track when we last received a state update
+    nextUpdateTime: null, // When the next server update will occur
     // Player settings
     player: {
       welcomeMessageDuration: 5000, // Duration to show welcome message in milliseconds
@@ -41,8 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Game state with selected cells and rooms
   let gameState = {
-    grid: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
+    grid: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(null)),
     selected: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
+    pendingSelections: [], // Store coordinates of selections not yet sent to server
     lastUpdate: null,
     // Player state
     player: {
@@ -57,6 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
       roomCount: 0,
       isNewPlayer: false
     }
+  };
+
+  // Define sector icons mapping (matching the HUD icons)
+  const sectorIcons = {
+    'housing': '🏠',
+    'entertainment': '🎭',
+    'weapons': '🔫',
+    'food': '🍔',
+    'technical': '⚙️',
+    'default': '🏢' // Default icon if sector type is unknown
   };
 
   // Set up the canvas and Two.js instances
@@ -222,22 +234,48 @@ document.addEventListener('DOMContentLoaded', () => {
     groundLine.linewidth = 5; // Thicker line
     gameGroup.add(groundLine);
     
-    // Draw selected spaces (transparent) and rooms (solid)
+    // Draw rooms and selections
     for (let y = 0; y < config.gridHeight; y++) {
       for (let x = 0; x < config.gridWidth; x++) {
-        // Draw room (solid color) if there's a constructed room
-        if (gameState.grid[y][x] === 1) {
+        // Draw a room if there's one at this location
+        if (gameState.grid[y][x]) {
+          const roomData = gameState.grid[y][x];
+          const roomX = x * config.cellSize + config.cellSize / 2;
+          const roomY = y * config.cellSize + config.cellSize / 2;
+          
+          // Create room rectangle
           const room = new Two.Rectangle(
-            x * config.cellSize + config.cellSize / 2, 
-            y * config.cellSize + config.cellSize / 2,
+            roomX, 
+            roomY,
             config.cellSize - 2, 
             config.cellSize - 2
           );
           room.fill = config.colors.room;
           room.noStroke();
           gameGroup.add(room);
+          
+          // Add sector icon for the room
+          const sectorType = roomData.type || 'default';
+          const icon = sectorIcons[sectorType] || sectorIcons.default;
+          
+          // Create text element for the icon
+          const iconSize = Math.min(14 * (1/config.view.zoom), config.cellSize * 0.7);
+          const iconText = new Two.Text(
+            icon,
+            roomX,
+            roomY,
+            {
+              size: iconSize,
+              alignment: 'center',
+              baseline: 'middle',
+              style: 'normal',
+              family: 'Arial'
+            }
+          );
+          iconText.fill = '#FFFFFF'; // White text
+          gameGroup.add(iconText);
         } 
-        // Draw selected space (transparent color) if the space is selected
+        // Draw selected space (transparent) if the space is selected
         else if (gameState.selected[y][x] === 1) {
           const selectedSpace = new Two.Rectangle(
             x * config.cellSize + config.cellSize / 2, 
@@ -294,17 +332,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if click is within grid bounds
     if (gridPos.x >= 0 && gridPos.x < config.gridWidth && 
         gridPos.y >= 0 && gridPos.y < config.gridHeight) {
+      
       // Only allow selecting an empty cell that isn't already selected
-      if (gameState.grid[gridPos.y][gridPos.x] === 0 && 
+      if (!gameState.grid[gridPos.y][gridPos.x] && 
           gameState.selected[gridPos.y][gridPos.x] === 0) {
-        // Mark as selected instead of creating a room immediately
+        
+        // Mark as selected in local state
         gameState.selected[gridPos.y][gridPos.x] = 1;
+        
+        // Add to pending selections array for next update
+        gameState.pendingSelections.push({x: gridPos.x, y: gridPos.y});
+        
+        // Redraw the game (but don't send to server)
         renderGame();
-        saveGameState();
+        
+        console.log(`Added selection at (${gridPos.x},${gridPos.y}) to pending queue. Total pending: ${gameState.pendingSelections.length}`);
       }
     }
   }
-  
+
   // Pan start handler
   function handlePanStart(event) {
     // Get the coordinates (mouse or touch)
@@ -436,10 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridHeightPixels = config.gridHeight * config.cellSize * newZoom;
     
     // Allow panning 3 grid sizes below the tower
-    const belowTowerPadding = 3 * config.cellSize * newZoom; // Fixed variable name from zoomNew to newZoom
+    const belowTowerPadding = 3 * config.cellSize * newZoom;
     
     // Allow panning 10 grid sizes above the tower
-    const aboveTowerPadding = 10 * config.cellSize * newZoom; // Fixed variable name
+    const aboveTowerPadding = 10 * config.cellSize * newZoom;
     
     // Allow panning 20 grid sizes to the left and right of the tower
     const sidePadding = 20 * config.cellSize * newZoom;
@@ -499,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
         touch2.clientX - touch1.clientX,
         touch2.clientY - touch1.clientY
       );
-      const newZoom = Math.max(config.view.minZoom,
+      const newZoom = Math.max(config.view.minZoom, 
                         Math.min(config.view.maxZoom,
                           touchInitialZoom * (currentDistance / touchInitialDistance)
                         ));
@@ -537,7 +583,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleKeyDown(event) {
     // Track the key press
     config.view.keysPressed[event.key] = true;
-    
     // Update the view based on pressed arrow keys
     updateViewWithArrowKeys();
   }
@@ -610,20 +655,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`api/gameState.php?playerID=${encodeURIComponent(playerID)}`);
       const data = await response.json();
       
+      // Check if the server is signaling that an update is about to occur
+      if (data.updateInProgress && gameState.pendingSelections.length > 0) {
+        // If update is in progress, send our pending selections
+        await sendPendingSelections();
+      }
+      
       if (data.grid) {
-        // Check if the grid or selected spaces have changed
+        // Store next update time if provided
+        if (data.nextUpdateTime) {
+          config.nextUpdateTime = new Date(data.nextUpdateTime);
+          
+          // Calculate time until next update
+          const timeUntilUpdate = config.nextUpdateTime - new Date();
+          
+          // If update is imminent (within 5 seconds), send pending selections
+          if (timeUntilUpdate > 0 && timeUntilUpdate < 5000 && gameState.pendingSelections.length > 0) {
+            console.log("Update is imminent, sending pending selections");
+            await sendPendingSelections();
+          }
+        }
+        
+        // Check if the grid has changed
         let hasChanged = false;
         
-        // Compare with existing grid and selected spaces
+        // Compare with existing grid
         if (gameState.grid && gameState.grid.length > 0) {
-          // Check if grid has changed
+          // Simple check - compare JSON strings
           const gridChanged = JSON.stringify(data.grid) !== JSON.stringify(gameState.grid);
-          
-          // Check if selected spaces have changed (if present in data)
-          const selectedChanged = data.selected && 
-            JSON.stringify(data.selected) !== JSON.stringify(gameState.selected);
-          
-          hasChanged = gridChanged || selectedChanged;
+          hasChanged = gridChanged;
         } else {
           // First load or empty grid
           hasChanged = true;
@@ -637,17 +697,30 @@ document.addEventListener('DOMContentLoaded', () => {
         // Only update the UI if something has changed
         if (hasChanged) {
           console.log("Game state updated from server");
+          
+          // Update the grid with server data
           gameState.grid = data.grid;
           
-          // Update selected spaces if present in data
-          if (data.selected) {
-            gameState.selected = data.selected;
+          // Clear any selections that are now rooms
+          // This prevents selecting spots that became rooms in the last update
+          for (let y = 0; y < config.gridHeight; y++) {
+            for (let x = 0; x < config.gridWidth; x++) {
+              if (gameState.grid[y][x]) {
+                // Remove from selected grid
+                gameState.selected[y][x] = 0;
+                
+                // Remove from pending selections if present
+                gameState.pendingSelections = gameState.pendingSelections.filter(
+                  sel => !(sel.x === x && sel.y === y)
+                );
+              }
+            }
           }
           
           gameState.lastUpdate = new Date();
           renderGame();
           
-          // Reset the update timer in the HUD when state changes
+          // Reset the update timer in the HUD
           if (data.lastUpdateTimestamp) {
             playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
           } else {
@@ -677,7 +750,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // Save the game state to the server
+  // Send pending selections to the server during an update
+  async function sendPendingSelections() {
+    if (gameState.pendingSelections.length === 0) {
+      return; // Nothing to send
+    }
+    
+    try {
+      console.log(`Sending ${gameState.pendingSelections.length} pending selections to server`);
+      
+      const response = await fetch('api/sendSelections.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          selections: gameState.pendingSelections,
+          playerID: gameState.player.playerID
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log(`Sent ${gameState.pendingSelections.length} selections to server successfully`);
+        // Clear pending selections as they're now on the server
+        gameState.pendingSelections = [];
+      } else {
+        console.error('Failed to send selections:', data.error);
+      }
+    } catch (error) {
+      console.error('Error sending selections:', error);
+    }
+  }
+  
+  // Save the game state to the server (now just saves selections)
   async function saveGameState() {
     try {
       const response = await fetch('api/saveState.php', {
@@ -686,7 +793,6 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          grid: gameState.grid,
           selected: gameState.selected,
           playerID: gameState.player.playerID
         })
@@ -694,10 +800,10 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const data = await response.json();
       if (!data.success) {
-        console.error('Error saving game state:', data.error);
+        console.error('Error saving selections:', data.error);
       }
     } catch (error) {
-      console.error('Error saving game state:', error);
+      console.error('Error saving selections:', error);
     }
   }
   
@@ -713,7 +819,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Player Management Functions
-  
   /**
    * Check if a player ID exists in local storage
    * @returns {string|null} The player ID or null if not found
@@ -745,7 +850,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const data = await response.json();
-      
       if (data.success && data.player) {
         // Update player state with fetched data
         gameState.player = {
@@ -877,7 +981,6 @@ document.addEventListener('DOMContentLoaded', () => {
   async function initializePlayer() {
     // Check if player ID exists in localStorage
     const storedPlayerID = getPlayerIDFromStorage();
-    
     if (storedPlayerID) {
       console.log('Found stored player ID:', storedPlayerID);
       
@@ -928,7 +1031,6 @@ document.addEventListener('DOMContentLoaded', () => {
     gameCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     gameCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     gameCanvas.addEventListener('touchend', handleTouchEnd);
-    gameCanvas.addEventListener('touchstart', handleDoubleTap);
     
     // Disable page scrolling when interacting with the canvas
     document.body.addEventListener('touchmove', function(e) {
@@ -938,8 +1040,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: false });
     
     // Update the CSS touch-action property programmatically
-    gameCanvas.style.touchAction = 'none';
     document.body.style.touchAction = 'none';
+    gameCanvas.style.touchAction = 'none';
     
     // Start the animation loop
     animateBackground();

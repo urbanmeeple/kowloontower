@@ -28,129 +28,148 @@ if (!$isCommandLine && !$hasValidKey) {
 }
 
 /**
- * Converts selected spaces into constructed rooms
- * and creates corresponding database entries
+ * Process all pending selections and convert them to rooms
  * 
- * @param array $currentState Current state array with grid, selected, and selectionOwners
- * @return array Updated state array with selections converted to rooms
+ * @return int Number of rooms created
  */
-function processSelectedToRooms($currentState) {
+function processSelections() {
     global $pdo;
     
-    $grid = $currentState['grid'];
-    $selected = $currentState['selected'] ?? array_fill(0, count($grid), array_fill(0, count($grid[0]), 0));
-    $selectionOwners = $currentState['selectionOwners'] ?? array_fill(0, count($grid), array_fill(0, count($grid[0]), null));
-    
-    $gridHeight = count($grid);
-    $gridWidth = count($grid[0]);
-    $changesCount = 0;
+    $roomsCreated = 0;
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
+    $tempDir = dirname(__FILE__) . '/../temp';
     
-    // Convert selected spaces to rooms
-    for ($y = 0; $y < $gridHeight; $y++) {
-        for ($x = 0; $x < $gridWidth; $x++) {
-            // If space is selected and not already a room
-            if ($selected[$y][$x] === 1 && $grid[$y][$x] === 0) {
-                // Convert to a room in the grid
-                $grid[$y][$x] = 1;
+    // Check if temp directory exists
+    if (!file_exists($tempDir)) {
+        writeLog("Temp directory doesn't exist. No selections to process.");
+        return 0;
+    }
+    
+    // Get all selection files
+    $selectionFiles = glob("$tempDir/selections_*.json");
+    writeLog("Found " . count($selectionFiles) . " selection files to process");
+    
+    foreach ($selectionFiles as $file) {
+        // Extract player ID from filename
+        if (preg_match('/selections_(\d+)\.json$/', $file, $matches)) {
+            $playerID = $matches[1];
+            
+            try {
+                // Read selections from file
+                $fileContent = file_get_contents($file);
+                $selections = json_decode($fileContent, true);
                 
-                // Clear selection
-                $selected[$y][$x] = 0;
+                if (!is_array($selections)) {
+                    writeLog("Invalid selections format in file: $file");
+                    unlink($file); // Delete invalid file
+                    continue;
+                }
                 
-                // Get player who selected this space
-                $playerID = $selectionOwners[$y][$x];
-                if ($playerID) {
-                    try {
-                        // Determine sector type (for simplicity, use 'residential' as default)
-                        $sectorType = 'residential';
-                        
-                        // Insert room into database
-                        $stmt = $pdo->prepare("
+                writeLog("Processing " . count($selections) . " selections for player: $playerID");
+                
+                // Verify the player exists
+                $playerStmt = $pdo->prepare("SELECT * FROM players WHERE playerID = :playerID");
+                $playerStmt->execute(['playerID' => $playerID]);
+                $player = $playerStmt->fetch();
+                
+                if (!$player) {
+                    writeLog("Player $playerID not found. Skipping their selections.");
+                    unlink($file);
+                    continue;
+                }
+                
+                // Get player's stock values to determine sector type
+                $stockTypes = [
+                    'stock_housing' => 'housing',
+                    'stock_entertainment' => 'entertainment',
+                    'stock_weapons' => 'weapons',
+                    'stock_food' => 'food',
+                    'stock_technical' => 'technical'
+                ];
+                
+                // Find the stock with the highest value
+                $highestStock = 'stock_housing'; // Default
+                foreach ($stockTypes as $stockKey => $sectorValue) {
+                    if ($player[$stockKey] > $player[$highestStock]) {
+                        $highestStock = $stockKey;
+                    }
+                }
+                
+                $sectorType = $stockTypes[$highestStock];
+                
+                // Process each selection
+                foreach ($selections as $selection) {
+                    $x = $selection['x'];
+                    $y = $selection['y'];
+                    
+                    // Check if this location is already occupied
+                    $checkStmt = $pdo->prepare("
+                        SELECT COUNT(*) as room_count 
+                        FROM rooms 
+                        WHERE location_x = :x AND location_y = :y
+                    ");
+                    $checkStmt->execute(['x' => $x, 'y' => $y]);
+                    $roomExists = $checkStmt->fetch()['room_count'] > 0;
+                    
+                    if (!$roomExists) {
+                        // Create a room at this location
+                        $roomStmt = $pdo->prepare("
                             INSERT INTO rooms 
                             (sector_type, location_x, location_y, maintenance_level, status, created_datetime) 
                             VALUES 
                             (:sector_type, :location_x, :location_y, 1.0, 'active', :created_datetime)
                         ");
                         
-                        $stmt->execute([
+                        $roomStmt->execute([
                             'sector_type' => $sectorType,
                             'location_x' => $x,
-                            'location_y' => $y,
+                            'location_y' => $y, 
                             'created_datetime' => $currentUtcDateTime
                         ]);
                         
                         // Get the new room ID
                         $roomID = $pdo->lastInsertId();
                         
-                        // Associate room with player
-                        $stmt = $pdo->prepare("
+                        // Link room to player
+                        $linkStmt = $pdo->prepare("
                             INSERT INTO players_rooms 
                             (playerID, roomID) 
                             VALUES 
                             (:playerID, :roomID)
                         ");
                         
-                        $stmt->execute([
+                        $linkStmt->execute([
                             'playerID' => $playerID,
                             'roomID' => $roomID
                         ]);
                         
-                        writeLog("Created room at ($x,$y) for player $playerID (roomID: $roomID)");
-                    } catch (Exception $e) {
-                        writeLog("Error creating room in database: " . $e->getMessage());
+                        $roomsCreated++;
+                        writeLog("Created $sectorType room at ($x,$y) for player $playerID");
+                    } else {
+                        writeLog("Room already exists at ($x,$y). Skipping.");
                     }
-                } else {
-                    writeLog("Warning: Room at ($x,$y) has no owner");
                 }
                 
-                $changesCount++;
+                // Delete the processed file
+                unlink($file);
+                
+            } catch (Exception $e) {
+                writeLog("Error processing selections for player $playerID: " . $e->getMessage());
+                // Don't delete the file on error to allow for retry
             }
         }
     }
     
-    writeLog("Converted $changesCount selected spaces to rooms");
-    
-    return [
-        'grid' => $grid,
-        'selected' => $selected,
-        'selectionOwners' => $selectionOwners
-    ];
+    return $roomsCreated;
 }
 
 try {
     // Get current UTC datetime for updating the game state
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
     
-    // Retrieve the current tower state.
-    $stmt = $pdo->query("SELECT state FROM tower_state ORDER BY updated_at DESC LIMIT 1");
-    $row = $stmt->fetch();
+    // Process all pending selections
+    $roomsCreated = processSelections();
     
-    if ($row) {
-        $currentState = json_decode($row['state'], true);
-    } else {
-        // If no state exists yet, initialize with empty grid and selected arrays
-        $gridHeight = 30;
-        $gridWidth = 20;
-        
-        $currentState = [
-            'grid' => array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0)),
-            'selected' => array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0)),
-            'selectionOwners' => array_fill(0, $gridHeight, array_fill(0, $gridWidth, null))
-        ];
-    }
-
-    // Process selected spaces and convert them to rooms
-    $newState = processSelectedToRooms($currentState);
-    
-    // Add timestamp
-    $newState['timestamp'] = time();
-    
-    $newStateJson = json_encode($newState);
-
-    // Insert the updated state into the database.
-    $stmt = $pdo->prepare("INSERT INTO tower_state (state) VALUES (:state)");
-    $stmt->execute(['state' => $newStateJson]);
-
     // Update the last_update_datetime in the game_state table
     $updateStateStmt = $pdo->prepare("
         UPDATE game_state SET last_update_datetime = :last_update_datetime
@@ -167,16 +186,19 @@ try {
         writeLog("Initialized game_state table with first record");
     }
 
-    // Count occupied cells for logging
-    $roomCount = 0;
-    foreach ($newState['grid'] as $row) {
-        $roomCount += array_sum($row);
-    }
+    // Count all rooms for logging
+    $roomCountStmt = $pdo->query("SELECT COUNT(*) as total_rooms FROM rooms");
+    $totalRooms = $roomCountStmt->fetch()['total_rooms'];
 
     // Log success.
-    writeLog("Game state updated successfully. Total room count: $roomCount");
-    writeLog("Last update time set to: $currentUtcDateTime UTC");
-    echo json_encode(['success' => true, 'state' => $newState]);
+    writeLog("Game state updated successfully. {$roomsCreated} new rooms created. Total room count: {$totalRooms}");
+    writeLog("Last update time set to: {$currentUtcDateTime} UTC");
+    echo json_encode([
+        'success' => true, 
+        'roomsCreated' => $roomsCreated,
+        'totalRooms' => $totalRooms,
+        'lastUpdateTime' => $currentUtcDateTime
+    ]);
 } catch (Exception $e) {
     $msg = "Error updating game state: " . $e->getMessage();
     writeLog($msg);

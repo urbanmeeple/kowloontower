@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
       panY: 0,           // Initial pan Y offset
       isPanning: false,  // Flag to track panning state
       lastX: 0,          // Last mouse/touch X position
-      lastY: 0           // Last mouse/touch Y position
+      lastY: 0,          // Last mouse/touch Y position
+      keyPanAmount: 15,  // Amount to pan with each key press (in pixels)
+      keysPressed: {}    // Track which keys are currently pressed
     },
     // Auto-update settings
     updateInterval: 10000, // Check for updates every 10 seconds
@@ -510,6 +512,75 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // Handle keydown events for arrow key navigation
+  function handleKeyDown(event) {
+    // Track the key press
+    config.view.keysPressed[event.key] = true;
+    
+    // Update the view based on pressed arrow keys
+    updateViewWithArrowKeys();
+  }
+  
+  // Handle keyup events for arrow key navigation
+  function handleKeyUp(event) {
+    // Remove the key from the pressed keys
+    delete config.view.keysPressed[event.key];
+  }
+  
+  // Update the view based on which arrow keys are pressed
+  function updateViewWithArrowKeys() {
+    let deltaX = 0;
+    let deltaY = 0;
+    const panAmount = config.view.keyPanAmount;
+    
+    // Check which arrow keys are pressed
+    if (config.view.keysPressed['ArrowLeft']) {
+      deltaX += panAmount;
+    }
+    if (config.view.keysPressed['ArrowRight']) {
+      deltaX -= panAmount;
+    }
+    if (config.view.keysPressed['ArrowUp']) {
+      deltaY += panAmount;
+    }
+    if (config.view.keysPressed['ArrowDown']) {
+      deltaY -= panAmount;
+    }
+    
+    // Only apply changes if there's actual movement
+    if (deltaX !== 0 || deltaY !== 0) {
+      // Update pan values
+      config.view.panX += deltaX;
+      config.view.panY += deltaY;
+      
+      // Apply standard panning boundaries (reuse the same logic used in other pan functions)
+      const zoom = config.view.zoom;
+      const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
+      const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
+      
+      // Allow panning 3 grid sizes below the tower
+      const belowTowerPadding = 3 * config.cellSize * zoom;
+      
+      // Allow panning 10 grid sizes above the tower
+      const aboveTowerPadding = 10 * config.cellSize * zoom;
+      
+      // Allow panning 20 grid sizes to the left and right of the tower
+      const sidePadding = 20 * config.cellSize * zoom;
+      
+      const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
+      const maxPanX = -gridOffsetX + sidePadding;
+      const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
+      const maxPanY = -gridOffsetY + aboveTowerPadding;
+      
+      // Clamp pan values to keep the grid within the boundaries
+      config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
+      config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
+      
+      // Redraw
+      renderGame();
+    }
+  }
+  
   // Fetch the current game state from the server
   async function fetchGameState() {
     try {
@@ -603,6 +674,10 @@ document.addEventListener('DOMContentLoaded', () => {
     gameCanvas.addEventListener('click', handleCanvasClick);
     gameCanvas.addEventListener('mousedown', handlePanStart);
     gameCanvas.addEventListener('wheel', handleZoom, { passive: false });
+    
+    // Keyboard event listeners for arrow key navigation
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     
     // Prevent context menu on right click
     gameCanvas.addEventListener('contextmenu', event => event.preventDefault());

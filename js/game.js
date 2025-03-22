@@ -200,8 +200,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const parentGroup = new Two.Group();
     parentGroup.translation.set(fixedHorizontal(), verticalPan);
     
+    // Create the ground rectangle.
+    const towerBottom = 20 * cellSize + config.gridHeight * cellSize; // tower grid bottom (in game view)
+    const groundTop = towerBottom;  // Immediately below the tower grid.
+    const groundBottom = gameView.top + gameView.height; // Bottom of the game view.
+    const groundHeight = groundBottom - groundTop;
+    const groundCenterX = gameView.left + gameView.width / 2;
+    const groundCenterY = groundTop + groundHeight / 2;
+    const groundRect = new Two.Rectangle(groundCenterX, groundCenterY, gameView.width, groundHeight);
+    groundRect.fill = config.colors.ground;
+    groundRect.noStroke();
+    // Add ground rectangle first so it appears behind the tower grid.
+    parentGroup.add(groundRect);
+    
     // Child group for the tower grid.
-    // The tower grid is placed at (100*cellSize, 20*cellSize) within the game view.
     const gridGroup = new Two.Group();
     gridGroup.translation.set(100 * cellSize, 20 * cellSize);
     

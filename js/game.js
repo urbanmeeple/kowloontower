@@ -339,6 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Global flag to track if the space key is pressed
+  let isSpaceDown = false;
+
   // Pan start handler
   function handlePanStart(event) {
     // Get the coordinates (mouse or touch)
@@ -347,8 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
       clientX = event.clientX;
       clientY = event.clientY;
       
-      // Only start panning on middle mouse or right mouse button
-      if (event.button !== 1 && event.button !== 2) return;
+      // Only start panning if the space key is pressed or middle/right mouse button
+      if (!isSpaceDown && event.button !== 1 && event.button !== 2) return;
       
       event.preventDefault(); // Prevent default for mouse event
     } else {
@@ -1018,6 +1021,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard event listeners for arrow key navigation
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    
+    // Add event listeners for space key
+    window.addEventListener('keydown', (event) => {
+      if (event.key === ' ') {
+        isSpaceDown = true;
+      }
+    });
+    
+    window.addEventListener('keyup', (event) => {
+      if (event.key === ' ') {
+        isSpaceDown = false;
+      }
+    });
     
     // Prevent context menu on right click
     gameCanvas.addEventListener('contextmenu', event => event.preventDefault());

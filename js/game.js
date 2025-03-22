@@ -202,17 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
       gameGroup.add(line);
     }
     
-    // Draw ground line - thicker line at the bottom of the grid
-    const groundLine = new Two.Line(
-      -20, // Extend beyond grid left
-      config.gridHeight * config.cellSize + 5, // 5px below grid bottom
-      config.gridWidth * config.cellSize + 20, // Extend beyond grid right
-      config.gridHeight * config.cellSize + 5
-    );
-    groundLine.stroke = config.colors.ground;
-    groundLine.linewidth = 5; // Thicker line
-    gameGroup.add(groundLine);
-    
     // Draw rooms and selections
     for (let y = 0; y < config.gridHeight; y++) {
       for (let x = 0; x < config.gridWidth; x++) {
@@ -280,6 +269,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add the group to the scene
     gameTwo.add(gameGroup);
+    
+    // Add the ground rectangle
+    const groundY = gridOffsetY + config.gridHeight * config.cellSize;
+    const groundHeight = gameTwo.height - groundY;
+    const groundRect = new Two.Rectangle(
+      gameTwo.width / 2,          // center X: full-width rectangle
+      groundY + groundHeight / 2,   // center Y: between grid bottom and screen bottom
+      gameTwo.width,              // width: full screen width
+      groundHeight                // height: from grid bottom to bottom of screen
+    );
+    groundRect.fill = config.colors.ground; // brown color
+    groundRect.noStroke();
+    gameTwo.add(groundRect);
+    
     gameTwo.update();
   }
   
@@ -1024,16 +1027,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listeners for space key
     window.addEventListener('keydown', (event) => {
-      if (event.key === ' ') {
+      if (event.code === 'Space') {
         isSpaceDown = true;
+        event.preventDefault();
       }
-    });
+    }, true);
     
     window.addEventListener('keyup', (event) => {
-      if (event.key === ' ') {
+      if (event.code === 'Space') {
         isSpaceDown = false;
+        event.preventDefault();
       }
-    });
+    }, true);
     
     // Prevent context menu on right click
     gameCanvas.addEventListener('contextmenu', event => event.preventDefault());

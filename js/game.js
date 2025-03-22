@@ -609,22 +609,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Only apply changes if there's actual movement
     if (deltaX !== 0 || deltaY !== 0) {
-      // Update pan values
       config.view.panX += deltaX;
       config.view.panY += deltaY;
       
-      // Apply standard panning boundaries (reuse the same logic used in other pan functions)
       const zoom = config.view.zoom;
       const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
       const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
       
-      // Allow panning 3 grid sizes below the tower
-      const belowTowerPadding = 3 * config.cellSize * zoom;
-      
-      // Allow panning 10 grid sizes above the tower
+      // Change: Allow panning all the way below the tower by setting belowTowerPadding to zero
+      const belowTowerPadding = 0 * config.cellSize * zoom;
       const aboveTowerPadding = 10 * config.cellSize * zoom;
-      
-      // Allow panning 20 grid sizes to the left and right of the tower
       const sidePadding = 20 * config.cellSize * zoom;
       
       const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
@@ -632,11 +626,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
       const maxPanY = -gridOffsetY + aboveTowerPadding;
       
-      // Clamp pan values to keep the grid within the boundaries
       config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
       config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
       
-      // Redraw
       renderGame();
     }
   }

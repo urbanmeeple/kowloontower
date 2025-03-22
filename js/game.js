@@ -169,23 +169,25 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // NEW CONFIG: remove zoom and horizontal pan. Define game view boundaries.
   const cellSize = config.cellSize;
+  // Increase bottom padding to 100 grid cell sizes.
   const gameView = {
     left: -100 * cellSize,
     top: -20 * cellSize,
     width: config.gridWidth * cellSize + 200 * cellSize,    // Extra 100 cells each side
-    height: config.gridHeight * cellSize + 40 * cellSize       // Extra 20 cells top & bottom
+    height: config.gridHeight * cellSize + (20 + 100) * cellSize  // Extra 20 top, 100 bottom
   };
-  // Vertical panning variable only.
-  let verticalPan = 0; 
+  // Set initial verticalPan so that the tower grid center (at y = 20*cellSize + gridHeight/2*cellSize) 
+  // is centered on screen. For example, if gameCanvas height is 600, tower grid center = 20*20 + 30*20/2 = 400+300 = 700,
+  // then verticalPan = 600/2 - 700 = -400.
+  let verticalPan = -400; 
   // Compute horizontal translation to center tower grid on screen:
-  // Tower grid is drawn at (100*cellSize, 20*cellSize) in game view. Its center is:
   function fixedHorizontal() {
     return gameCanvas.width/2 - (100 * cellSize + (config.gridWidth * cellSize)/2);
   }
-  // Compute allowed vertical pan range:
+  // Adjusted clampVerticalPan with updated gameView:
   function clampVerticalPan(vPan) {
-    const minPan = gameCanvas.height - (gameView.top + gameView.height); // lowest value: game view bottom just touches screen bottom.
-    const maxPan = -gameView.top; // highest value: game view top touches top of screen.
+    const minPan = gameCanvas.height - (gameView.top + gameView.height); // lowest: game view bottom touches screen bottom.
+    const maxPan = -gameView.top; // highest: game view top touches screen top.
     return Math.max(minPan, Math.min(maxPan, vPan));
   }
   

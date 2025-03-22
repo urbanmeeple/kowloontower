@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
     
     // Allow panning 3 grid sizes below the tower
-    const belowTowerPadding = 3 * config.cellSize * zoom;
+    const belowTowerPadding = 20 * config.cellSize * zoom;
     
     // Allow panning 10 grid sizes above the tower
     const aboveTowerPadding = 10 * config.cellSize * zoom;

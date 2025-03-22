@@ -167,122 +167,120 @@ document.addEventListener('DOMContentLoaded', () => {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
   
+  // NEW CONFIG: remove zoom and horizontal pan. Define game view boundaries.
+  const cellSize = config.cellSize;
+  const gameView = {
+    left: -100 * cellSize,
+    top: -20 * cellSize,
+    width: config.gridWidth * cellSize + 200 * cellSize,    // Extra 100 cells each side
+    height: config.gridHeight * cellSize + 40 * cellSize       // Extra 20 cells top & bottom
+  };
+  // Vertical panning variable only.
+  let verticalPan = 0; 
+  // Compute horizontal translation to center tower grid on screen:
+  // Tower grid is drawn at (100*cellSize, 20*cellSize) in game view. Its center is:
+  function fixedHorizontal() {
+    return gameCanvas.width/2 - (100 * cellSize + (config.gridWidth * cellSize)/2);
+  }
+  // Compute allowed vertical pan range:
+  function clampVerticalPan(vPan) {
+    const minPan = gameCanvas.height - (gameView.top + gameView.height); // lowest value: game view bottom just touches screen bottom.
+    const maxPan = -gameView.top; // highest value: game view top touches top of screen.
+    return Math.max(minPan, Math.min(maxPan, vPan));
+  }
+  
+  // REMAKE renderGame: remove old pan/zoom logic.
+  // Now create a parent group with fixed horizontal translation and verticalPan.
   function renderGame() {
     gameTwo.clear();
     
-    // Create a group for all game elements to apply transformations
-    const gameGroup = new Two.Group();
+    // Parent group: translates the entire game view.
+    const parentGroup = new Two.Group();
+    parentGroup.translation.set(fixedHorizontal(), verticalPan);
     
-    // Apply zoom and pan transformations
-    gameGroup.translation.set(gridOffsetX + config.view.panX, gridOffsetY + config.view.panY);
-    gameGroup.scale = config.view.zoom;
+    // Child group for the tower grid.
+    // The tower grid is placed at (100*cellSize, 20*cellSize) within the game view.
+    const gridGroup = new Two.Group();
+    gridGroup.translation.set(100 * cellSize, 20 * cellSize);
     
-    // Draw grid lines
+    // Draw grid lines for tower grid.
     for (let x = 0; x <= config.gridWidth; x++) {
       const line = new Two.Line(
-        x * config.cellSize, 
-        0, 
-        x * config.cellSize, 
-        config.gridHeight * config.cellSize
+        x * cellSize, 0, 
+        x * cellSize, config.gridHeight * cellSize
       );
       line.stroke = config.colors.grid;
       line.linewidth = 1;
-      gameGroup.add(line);
+      gridGroup.add(line);
     }
-    
     for (let y = 0; y <= config.gridHeight; y++) {
       const line = new Two.Line(
-        0, 
-        y * config.cellSize, 
-        config.gridWidth * config.cellSize, 
-        y * config.cellSize
+        0, y * cellSize, 
+        config.gridWidth * cellSize, y * cellSize
       );
       line.stroke = config.colors.grid;
       line.linewidth = 1;
-      gameGroup.add(line);
+      gridGroup.add(line);
     }
     
-    // Draw rooms and selections
+    // Draw rooms and selections on the tower grid (positions relative to gridGroup).
     for (let y = 0; y < config.gridHeight; y++) {
       for (let x = 0; x < config.gridWidth; x++) {
         const roomData = gameState.grid[y][x];
         if (roomData) {
-          const roomX = x * config.cellSize + config.cellSize / 2;
-          const roomY = y * config.cellSize + config.cellSize / 2;
-          const roomSize = config.cellSize - 2; // Room rectangle size
-          const iconSize = roomSize * 0.8; // Icon size as 80% of the room size
-
+          const roomX = x * cellSize + cellSize/2;
+          const roomY = y * cellSize + cellSize/2;
+          const roomSize = cellSize - 2;
           if (roomData.status === 'constructed') {
-            // Draw constructed room
             const room = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
             room.fill = config.colors.room;
             room.noStroke();
-            gameGroup.add(room);
-
-            // Add sector icon
+            gridGroup.add(room);
+            // Add sector icon...
             const sectorType = roomData.type || 'default';
             const icon = sectorIcons[sectorType] || sectorIcons.default;
             const iconText = new Two.Text(icon, roomX, roomY, {
-              size: iconSize / config.view.zoom, // Scale icon size with zoom
+              size: cellSize * 0.8, // fixed size (no zoom)
               alignment: 'center',
               baseline: 'middle',
               style: 'normal',
               family: 'Arial'
             });
-            iconText.fill = '#FFFFFF'; // White text
-            gameGroup.add(iconText);
+            iconText.fill = '#FFFFFF';
+            gridGroup.add(iconText);
           } else if (roomData.status === 'planned') {
-            // Draw planned room
             const plannedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
-            plannedRoom.fill = 'rgba(255, 0, 0, 0.2)'; // Transparent red fill
-            plannedRoom.stroke = '#FF0000'; // Solid red border
+            plannedRoom.fill = 'rgba(255, 0, 0, 0.2)';
+            plannedRoom.stroke = '#FF0000';
             plannedRoom.linewidth = 2;
-            gameGroup.add(plannedRoom);
-
-            // Add semi-transparent sector icon
+            gridGroup.add(plannedRoom);
             const sectorType = roomData.type || 'default';
             const icon = sectorIcons[sectorType] || sectorIcons.default;
             const iconText = new Two.Text(icon, roomX, roomY, {
-              size: iconSize / config.view.zoom, // Scale icon size with zoom
+              size: cellSize * 0.8,
               alignment: 'center',
               baseline: 'middle',
               style: 'normal',
               family: 'Arial'
             });
-            iconText.fill = 'rgba(255, 255, 255, 0.5)'; // Semi-transparent white text
-            gameGroup.add(iconText);
+            iconText.fill = 'rgba(255, 255, 255, 0.5)';
+            gridGroup.add(iconText);
           }
         } else if (gameState.selected[y][x] === 1) {
-          // Draw selected space
           const selectedSpace = new Two.Rectangle(
-            x * config.cellSize + config.cellSize / 2, 
-            y * config.cellSize + config.cellSize / 2,
-            config.cellSize - 2, 
-            config.cellSize - 2
+            x * cellSize + cellSize/2, 
+            y * cellSize + cellSize/2,
+            cellSize - 2, cellSize - 2
           );
           selectedSpace.fill = config.colors.selected;
           selectedSpace.noStroke();
-          gameGroup.add(selectedSpace);
+          gridGroup.add(selectedSpace);
         }
       }
     }
     
-    // Add the group to the scene
-    gameTwo.add(gameGroup);
-    
-    // Add the ground rectangle
-    const groundY = gridOffsetY + config.gridHeight * config.cellSize;
-    const groundHeight = gameTwo.height - groundY;
-    const groundRect = new Two.Rectangle(
-      gameTwo.width / 2,          // center X: full-width rectangle
-      groundY + groundHeight / 2,   // center Y: between grid bottom and screen bottom
-      gameTwo.width,              // width: full screen width
-      groundHeight                // height: from grid bottom to bottom of screen
-    );
-    groundRect.fill = config.colors.ground; // brown color
-    groundRect.noStroke();
-    gameTwo.add(groundRect);
-    
+    parentGroup.add(gridGroup);
+    gameTwo.add(parentGroup);
     gameTwo.update();
   }
   
@@ -342,295 +340,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Global flag to track if the space key is pressed
-  let isSpaceDown = false;
-
-  // Pan start handler
-  function handlePanStart(event) {
-    // Get the coordinates (mouse or touch)
-    let clientX, clientY;
-    if (event.type.includes('mouse')) {
-      clientX = event.clientX;
-      clientY = event.clientY;
-      
-      // Only start panning if the space key is pressed or middle/right mouse button
-      if (!isSpaceDown && event.button !== 1 && event.button !== 2) return;
-      
-      event.preventDefault(); // Prevent default for mouse event
-    } else {
-      clientX = event.touches[0].clientX;
-      clientY = event.touches[0].clientY;
-    }
-    
-    config.view.isPanning = true;
-    config.view.lastX = clientX;
-    config.view.lastY = clientY;
-    
-    // Add temporary event listeners for pan move and end
-    if (event.type.includes('mouse')) {
-      document.addEventListener('mousemove', handlePanMove);
-      document.addEventListener('mouseup', handlePanEnd);
-    } else {
-      document.addEventListener('touchmove', handlePanMove, { passive: false });
-      document.addEventListener('touchend', handlePanEnd);
+  // NEW key handler: Only arrow up/down move verticalPan.
+  function handleArrowKeys(event) {
+    const panStep = 15; // pixels
+    if (event.key === 'ArrowUp') {
+      verticalPan += panStep;
+      verticalPan = clampVerticalPan(verticalPan);
+      renderGame();
+    } else if (event.key === 'ArrowDown') {
+      verticalPan -= panStep;
+      verticalPan = clampVerticalPan(verticalPan);
+      renderGame();
     }
   }
   
-  // Pan move handler
-  function handlePanMove(event) {
-    if (!config.view.isPanning) return;
-    
-    let clientX, clientY;
-    if (event.type.includes('mouse')) {
-      clientX = event.clientX;
-      clientY = event.clientY;
-      event.preventDefault();
-    } else {
-      clientX = event.touches[0].clientX;
-      clientY = event.touches[0].clientY;
-      event.preventDefault(); // Prevent scrolling while panning
-    }
-    
-    // Calculate the delta
-    const deltaX = clientX - config.view.lastX;
-    const deltaY = clientY - config.view.lastY;
-    
-    // Update the last position
-    config.view.lastX = clientX;
-    config.view.lastY = clientY;
-    
-    // Update the pan values
-    config.view.panX += deltaX;
-    config.view.panY += deltaY;
-    
-    // Calculate the boundaries for panning
-    const zoom = config.view.zoom;
-    const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
-    const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
-    
-    // Allow panning 3 grid sizes below the tower
-    const belowTowerPadding = 20 * config.cellSize * zoom;
-    
-    // Allow panning 10 grid sizes above the tower
-    const aboveTowerPadding = 10 * config.cellSize * zoom;
-    
-    // Allow panning 20 grid sizes to the left and right of the tower
-    const sidePadding = 20 * config.cellSize * zoom;
-    
-    const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
-    const maxPanX = -gridOffsetX + sidePadding;
-    const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
-    const maxPanY = -gridOffsetY + aboveTowerPadding;
-    
-    // Clamp pan values to keep the grid within the boundaries
-    config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
-    config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
-    
-    // Redraw
-    renderGame();
-  }
-  
-  // Pan end handler
-  function handlePanEnd(event) {
-    config.view.isPanning = false;
-    
-    // Remove temporary event listeners
-    document.removeEventListener('mousemove', handlePanMove);
-    document.removeEventListener('mouseup', handlePanEnd);
-    document.removeEventListener('touchmove', handlePanMove);
-    document.removeEventListener('touchend', handlePanEnd);
-  }
-  
-  // Handle zoom with mouse wheel
-  function handleZoom(event) {
-    event.preventDefault();
-    
-    // Get the mouse position
-    const rect = gameCanvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    
-    // Calculate zoom direction
-    const delta = -Math.sign(event.deltaY);
-    const zoomFactor = 1 + (delta * config.view.zoomStep);
-    
-    // Calculate new zoom level with min/max limits
-    let newZoom = Math.max(
-      config.view.minZoom, 
-      Math.min(config.view.maxZoom, config.view.zoom * zoomFactor)
-    );
-    
-    // Calculate the zoom point in world coordinates before zoom
-    const worldX = (mouseX - gridOffsetX - config.view.panX) / config.view.zoom;
-    const worldY = (mouseY - gridOffsetY - config.view.panY) / config.view.zoom;
-    
-    // Apply new zoom
-    config.view.zoom = newZoom;
-    
-    // Calculate the new pan values to keep the zoom centered on mouse position
-    config.view.panX = mouseX - gridOffsetX - (worldX * newZoom);
-    config.view.panY = mouseY - gridOffsetY - (worldY * newZoom);
-    
-    // Apply standard panning boundaries
-    const gridWidthPixels = config.gridWidth * config.cellSize * newZoom;
-    const gridHeightPixels = config.gridHeight * config.cellSize * newZoom;
-    
-    // Allow panning 3 grid sizes below the tower
-    const belowTowerPadding = 3 * config.cellSize * newZoom;
-    
-    // Allow panning 10 grid sizes above the tower
-    const aboveTowerPadding = 10 * config.cellSize * newZoom;
-    
-    // Allow panning 20 grid sizes to the left and right of the tower
-    const sidePadding = 20 * config.cellSize * newZoom;
-    
-    const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
-    const maxPanX = -gridOffsetX + sidePadding;
-    const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
-    const maxPanY = -gridOffsetY + aboveTowerPadding;
-    
-    // Clamp pan values to keep the grid within the boundaries
-    config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
-    config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
-    
-    // Redraw
-    renderGame();
-  }
-  
-  // Remove/replace previous mobile touch implementation with this simplified version:
-
-  let touchInitialDistance = 0;
-  let touchInitialZoom = 1;
-  let touchInitialPanX = 0;
-  let touchInitialPanY = 0;
-  let lastTouchCenter = { x: 0, y: 0 };
-
+  // NEW touch handlers for vertical panning.
+  let touchStartY = 0;
+  let initialVerticalPan = 0;
   function handleTouchStart(event) {
-    if (event.touches.length === 2) {
-      event.preventDefault();
-      // Two-finger gesture: store initial distance and center
-      const touch1 = event.touches[0];
-      const touch2 = event.touches[1];
-      touchInitialDistance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      touchInitialZoom = config.view.zoom;
-      touchInitialPanX = config.view.panX;
-      touchInitialPanY = config.view.panY;
-      lastTouchCenter = {
-        x: (touch1.clientX + touch2.clientX) / 2,
-        y: (touch1.clientY + touch2.clientY) / 2
-      };
-    } else if (event.touches.length === 1) {
-      // Single-finger: record starting point for panning/tap
-      config.view.lastX = event.touches[0].clientX;
-      config.view.lastY = event.touches[0].clientY;
+    if (event.touches.length === 1) {
+      touchStartY = event.touches[0].clientY;
+      initialVerticalPan = verticalPan;
     }
   }
-
   function handleTouchMove(event) {
+    if (event.touches.length === 1) {
+      const deltaY = event.touches[0].clientY - touchStartY;
+      verticalPan = clampVerticalPan(initialVerticalPan + deltaY);
+      renderGame();
+    }
     event.preventDefault();
-    if (event.touches.length === 2) {
-      // Two-finger pinch-zoom and pan
-      const touch1 = event.touches[0];
-      const touch2 = event.touches[1];
-      const currentDistance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      const newZoom = Math.max(config.view.minZoom, 
-                        Math.min(config.view.maxZoom,
-                          touchInitialZoom * (currentDistance / touchInitialDistance)
-                        ));
-      config.view.zoom = newZoom;
-      const currentCenter = {
-        x: (touch1.clientX + touch2.clientX) / 2,
-        y: (touch1.clientY + touch2.clientY) / 2
-      };
-      // Update pan simply by adding change in center
-      config.view.panX += (currentCenter.x - lastTouchCenter.x);
-      config.view.panY += (currentCenter.y - lastTouchCenter.y);
-      lastTouchCenter = currentCenter;
-      renderGame();
-    } else if (event.touches.length === 1) {
-      // One-finger pan; add delta movement
-      const touch = event.touches[0];
-      const deltaX = touch.clientX - config.view.lastX;
-      const deltaY = touch.clientY - config.view.lastY;
-      config.view.panX += deltaX;
-      config.view.panY += deltaY;
-      config.view.lastX = touch.clientX;
-      config.view.lastY = touch.clientY;
-      renderGame();
-    }
   }
-
   function handleTouchEnd(event) {
-    // If no touches remain, and this was not a tap, do nothing special.
-    if (event.touches.length === 0) {
-      // Optionally, you could call a tap handler here.
-    }
-  }
-  
-  // Handle keydown events for arrow key navigation
-  function handleKeyDown(event) {
-    // Track the key press
-    config.view.keysPressed[event.key] = true;
-    // Update the view based on pressed arrow keys
-    updateViewWithArrowKeys();
-  }
-  
-  // Handle keyup events for arrow key navigation
-  function handleKeyUp(event) {
-    // Remove the key from the pressed keys
-    delete config.view.keysPressed[event.key];
-  }
-  
-  // Update the view based on which arrow keys are pressed
-  function updateViewWithArrowKeys() {
-    let deltaX = 0;
-    let deltaY = 0;
-    const panAmount = config.view.keyPanAmount;
-    
-    // Check which arrow keys are pressed
-    if (config.view.keysPressed['ArrowLeft']) {
-      deltaX += panAmount;
-    }
-    if (config.view.keysPressed['ArrowRight']) {
-      deltaX -= panAmount;
-    }
-    if (config.view.keysPressed['ArrowUp']) {
-      deltaY += panAmount;
-    }
-    if (config.view.keysPressed['ArrowDown']) {
-      deltaY -= panAmount;
-    }
-    
-    // Only apply changes if there's actual movement
-    if (deltaX !== 0 || deltaY !== 0) {
-      config.view.panX += deltaX;
-      config.view.panY += deltaY;
-      
-      const zoom = config.view.zoom;
-      const gridWidthPixels = config.gridWidth * config.cellSize * zoom;
-      const gridHeightPixels = config.gridHeight * config.cellSize * zoom;
-      
-      // Change: Allow panning all the way below the tower by setting belowTowerPadding to zero
-      const belowTowerPadding = 0 * config.cellSize * zoom;
-      const aboveTowerPadding = 10 * config.cellSize * zoom;
-      const sidePadding = 20 * config.cellSize * zoom;
-      
-      const minPanX = -gridWidthPixels + gameCanvas.width - gridOffsetX - sidePadding;
-      const maxPanX = -gridOffsetX + sidePadding;
-      const minPanY = -gridHeightPixels + gameCanvas.height - gridOffsetY - belowTowerPadding;
-      const maxPanY = -gridOffsetY + aboveTowerPadding;
-      
-      config.view.panX = Math.max(minPanX, Math.min(maxPanX, config.view.panX));
-      config.view.panY = Math.max(minPanY, Math.min(maxPanY, config.view.panY));
-      
-      renderGame();
-    }
+    // Nothing additional needed.
   }
   
   // Fetch the current game state from the server
@@ -998,7 +740,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize the game
   function initGame() {
     resizeCanvas();
-    
     // Initialize player first (async operation)
     initializePlayer().then(() => {
       // Once player is initialized, start game updates
@@ -1010,46 +751,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Mouse event listeners
     gameCanvas.addEventListener('click', handleCanvasClick);
-    gameCanvas.addEventListener('mousedown', handlePanStart);
-    gameCanvas.addEventListener('wheel', handleZoom, { passive: false });
     
-    // Keyboard event listeners for arrow key navigation
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    // NEW key listener for vertical panning:
+    window.addEventListener('keydown', handleArrowKeys);
     
-    // Add event listeners for space key
-    window.addEventListener('keydown', (event) => {
-      if (event.code === 'Space') {
-        isSpaceDown = true;
-        event.preventDefault();
-      }
-    }, true);
-    
-    window.addEventListener('keyup', (event) => {
-      if (event.code === 'Space') {
-        isSpaceDown = false;
-        event.preventDefault();
-      }
-    }, true);
-    
-    // Prevent context menu on right click
-    gameCanvas.addEventListener('contextmenu', event => event.preventDefault());
-    
-    // Touch event listeners for mobile
+    // NEW touch listeners for vertical panning:
     gameCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     gameCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     gameCanvas.addEventListener('touchend', handleTouchEnd);
-    
-    // Disable page scrolling when interacting with the canvas
-    document.body.addEventListener('touchmove', function(e) {
-      if (e.target === gameCanvas) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-    
-    // Update the CSS touch-action property programmatically
-    document.body.style.touchAction = 'none';
-    gameCanvas.style.touchAction = 'none';
     
     // Start the animation loop
     animateBackground();

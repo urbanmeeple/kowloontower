@@ -77,15 +77,9 @@ function adjustBrightness(hexColor, factor) {
 export function renderGame() {
   try {
     gameTwo.clear();
-    // Compute horizontal translation using a helper to center the grid.
-    const fixedHorizontal = () => gameTwo.width / 2 - (GRID_LEFT_PADDING_CELLS * config.cellSize + (config.gridWidth * config.cellSize) / 2);
-    
-    const parentGroup = new Two.Group();
-    parentGroup.translation.set(fixedHorizontal(), verticalPan);
-    
-    // Render ground rectangle behind the grid.
+
+    // Render ground rectangle directly in the scene (without parent's translation).
     const towerBottom = GRID_TOP_PADDING_CELLS * config.cellSize + config.gridHeight * config.cellSize;
-    // Calculate ground rectangle to fill full screen horizontally.
     const groundWidth = gameTwo.width;  // full canvas width
     const groundHeight = config.gridHeight * config.cellSize + (GRID_TOP_PADDING_CELLS + GRID_BOTTOM_EXTRA_CELLS) * config.cellSize;
     const groundCenterX = gameTwo.width / 2;
@@ -93,8 +87,13 @@ export function renderGame() {
     const groundRect = new Two.Rectangle(groundCenterX, groundCenterY, groundWidth, groundHeight);
     groundRect.fill = config.colors.ground;
     groundRect.noStroke();
-    parentGroup.add(groundRect);
-    
+    gameTwo.add(groundRect);  // add directly to the root
+
+    // Compute horizontal translation to center the grid.
+    const fixedHorizontal = () => gameTwo.width / 2 - (GRID_LEFT_PADDING_CELLS * config.cellSize + (config.gridWidth * config.cellSize) / 2);
+    const parentGroup = new Two.Group();
+    parentGroup.translation.set(fixedHorizontal(), verticalPan);
+
     // Create child group for the tower grid.
     const gridGroup = new Two.Group();
     gridGroup.translation.set(GRID_LEFT_PADDING_CELLS * config.cellSize, GRID_TOP_PADDING_CELLS * config.cellSize);

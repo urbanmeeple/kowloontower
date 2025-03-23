@@ -1,4 +1,3 @@
-import { config } from './config.js';
 import { initRender, animateBackground, resizeCanvas } from './render.js';
 import { initInputHandlers } from './input.js';
 import { startAutoUpdates } from './updater.js';

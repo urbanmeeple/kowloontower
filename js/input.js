@@ -1,6 +1,6 @@
-import { config } from './config.js';
+import { config } from './config.js.php';
 import { screenToGrid, renderGame, getVerticalPan, setVerticalPan } from './render.js';
-import { gameState } from './config.js';
+import { gameState } from './config.js.php';
 import { roomPopup } from './roomPopup.js'; // Assumes roomPopup.js exports a class instance
 
 // Initialize input event handlers for mouse and key events.

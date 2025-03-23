@@ -1,4 +1,4 @@
-import { config, gameState } from './config.js';
+import { config, gameState } from './config.js.php';
 import { renderGame } from './render.js';
 import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports a valid instance
 

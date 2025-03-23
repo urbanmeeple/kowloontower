@@ -1,4 +1,4 @@
-import { config, gameState, sectorIcons } from './config.js';
+import { config, gameState, sectorIcons } from './config.js.php';
 
 // Constants to replace magic numbers
 const GRID_LEFT_PADDING_CELLS = 100;  // Extra cells on left/right for horizontal centering

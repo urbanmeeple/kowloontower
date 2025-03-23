@@ -27,6 +27,10 @@ if (!$isCommandLine && !$hasValidKey) {
     exit;
 }
 
+// Define grid dimensions from centralized config
+$gridWidth = isset($config['gridWidth']) ? $config['gridWidth'] : 20;
+$gridHeight = isset($config['gridHeight']) ? $config['gridHeight'] : 30;
+
 /**
  * Add new planned rooms to the game
  * 
@@ -34,7 +38,7 @@ if (!$isCommandLine && !$hasValidKey) {
  * @return int Number of planned rooms successfully added
  */
 function addPlannedRooms($numPlannedRooms) {
-    global $pdo;
+    global $pdo, $gridWidth, $gridHeight;
     
     $addedRooms = 0;
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
@@ -59,9 +63,9 @@ function addPlannedRooms($numPlannedRooms) {
     $attempts = 0;
     while ($addedRooms < $numPlannedRooms && $attempts < $maxAttempts) {
         $attempts++;
-        // Randomly select a location adjacent to constructed rooms or in the lowest row
-        $x = rand(0, 19); // Grid width is 20
-        $y = rand(0, 29); // Grid height is 30
+        // Randomly select a location using centralized grid dimensions
+        $x = rand(0, $gridWidth - 1);
+        $y = rand(0, $gridHeight - 1);
 
         $isAdjacent = false;
 
@@ -73,8 +77,8 @@ function addPlannedRooms($numPlannedRooms) {
             }
         }
 
-        // Allow placement in the lowest row if not adjacent
-        if ($y === 29 || $isAdjacent) {
+        // Allow placement in the lowest row based on centralized grid height
+        if ($y === ($gridHeight - 1) || $isAdjacent) {
             // Check if the location is already occupied
             $stmt = $pdo->prepare("
                 SELECT COUNT(*) as count 

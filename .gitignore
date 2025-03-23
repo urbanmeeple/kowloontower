@@ -1,6 +1,7 @@
 #Ignore custom files and folders
 includes/
 config.php
+config
 .github/
 
 # Ignore node_modules directory

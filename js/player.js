@@ -1,5 +1,5 @@
 // This file contains functions to manage the player including fetching, creation, and initialization.
-import { config, gameState } from './config.js';
+import { config, gameState } from './config.js.php';
 import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports an instance
 
 /**

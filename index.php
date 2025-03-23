@@ -12,6 +12,7 @@
     <div id="background-container"></div>
     <canvas id="gameCanvas"></canvas>
   </div>
+  <script src="js/config.js.php"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

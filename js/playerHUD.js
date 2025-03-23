@@ -254,4 +254,4 @@ class PlayerHUD {
 }
 
 // Export the PlayerHUD class for global access
-window.PlayerHUD = PlayerHUD;
+export const playerHUD = new PlayerHUD(document.body);

@@ -22,6 +22,9 @@ export function initRender(canvas, backgroundContainer) {
     // Create Two.js instances for background and game rendering.
     backgroundTwo = new Two({ type: Two.Types.svg, fullscreen: true }).appendTo(backgroundContainer);
     gameTwo = new Two({ domElement: canvas, fullscreen: true });
+    // Ensure gameTwo renders above backgroundTwo by adjusting z-index.
+    backgroundTwo.renderer.domElement.style.zIndex = '0';
+    gameTwo.renderer.domElement.style.zIndex = '1';
     updateGridOffset(gameTwo);
   } catch (error) {
     console.error("Error during initRender:", error);

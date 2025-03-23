@@ -676,9 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Add a handler for right click (desktop) or long touch (mobile) to show room details
   function addRoomClickHandler() {
-    let touchTimer;
-    const longPressDelay = 500; // milliseconds
-
     // Function to handle showing the room popup
     async function showRoomDetails(gridX, gridY) {
       const roomData = gameState.grid[gridY][gridX];
@@ -700,9 +697,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return { username: 'PlayerName' }; // Dummy data
     }
 
-    // Desktop right click handler
-    gameCanvas.addEventListener('contextmenu', function(event) {
-      event.preventDefault(); // Prevent default context menu
+    // Desktop left click handler
+    gameCanvas.addEventListener('click', function(event) {
       const rect = gameCanvas.getBoundingClientRect();
       const mouseX = event.clientX - rect.left;
       const mouseY = event.clientY - rect.top;
@@ -714,30 +710,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Mobile touch handlers
-    gameCanvas.addEventListener('touchstart', function(event) {
-      if (event.touches.length === 1) {
-        // Start timer for long press
-        touchTimer = setTimeout(function() {
-          const rect = gameCanvas.getBoundingClientRect();
-          const touchX = event.touches[0].clientX - rect.left;
-          const touchY = event.touches[0].clientY - rect.top;
-          const gridPos = screenToGrid(touchX, touchY);
-
-          if (gridPos.x >= 0 && gridPos.x < config.gridWidth &&
-              gridPos.y >= 0 && gridPos.y < config.gridHeight) {
-            showRoomDetails(gridPos.x, gridPos.y);
-          }
-        }, longPressDelay);
-      }
-    });
-
-    gameCanvas.addEventListener('touchend', function(event) {
-      clearTimeout(touchTimer); // Cancel timer if touch ends before the delay
-    });
-
-    gameCanvas.addEventListener('touchcancel', function(event) {
-      clearTimeout(touchTimer); // Also clear timer on touch cancel
+    // Prevent default context menu on right click
+    gameCanvas.addEventListener('contextmenu', function(event) {
+      event.preventDefault();
     });
   }
   

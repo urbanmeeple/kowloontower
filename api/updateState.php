@@ -118,6 +118,35 @@ function addPlannedRooms($numPlannedRooms) {
     return $addedRooms;
 }
 
+function cacheGameData() {
+    global $pdo, $appCacheFile;
+    // This function caches relevant tables into a JSON file
+    $data = [];
+
+    // Fetch all rooms
+    $stmtRooms = $pdo->query("SELECT * FROM rooms");
+    $data['rooms'] = $stmtRooms->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch all players
+    $stmtPlayers = $pdo->query("SELECT * FROM players");
+    $data['players'] = $stmtPlayers->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch all bids
+    $stmtBids = $pdo->query("SELECT * FROM bids");
+    $data['bids'] = $stmtBids->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch join table
+    $stmtPlayersRooms = $pdo->query("SELECT * FROM players_rooms");
+    $data['players_rooms'] = $stmtPlayersRooms->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch game state
+    $stmtGameState = $pdo->query("SELECT * FROM game_state");
+    $data['game_state'] = $stmtGameState->fetchAll(PDO::FETCH_ASSOC);
+
+    file_put_contents($appCacheFile, json_encode($data));
+    writeLog("Cached game data to {$appCacheFile}");
+}
+
 try {
     // Prevent overlapping cron jobs using a lock file
     $lockFile = dirname(__FILE__) . '/../temp/updateState.lock';
@@ -155,6 +184,9 @@ try {
 
     // Log the number of planned rooms added
     writeLog("Added {$plannedRoomsAdded} planned rooms.");
+
+    // Cache game data
+    cacheGameData();
 
     // Count all rooms for logging
     $roomCountStmt = $pdo->query("SELECT COUNT(*) as total_rooms FROM rooms");

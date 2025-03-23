@@ -304,12 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(animateBackground);
   }
   
-  // Convert screen coordinates to grid coordinates
+  // Replace the screenToGrid implementation:
   function screenToGrid(screenX, screenY) {
-    const zoomInverse = 1 / config.view.zoom;
-    const x = Math.floor(((screenX - gridOffsetX - config.view.panX) * zoomInverse) / config.cellSize);
-    const y = Math.floor(((screenY - gridOffsetY - config.view.panY) * zoomInverse) / config.cellSize);
-    return { x, y };
+    // Compute the grid's origin as used in renderGame:
+    const gridOriginX = fixedHorizontal() + 100 * cellSize;
+    const gridOriginY = verticalPan + 20 * cellSize;
+    const gridX = Math.floor((screenX - gridOriginX) / cellSize);
+    const gridY = Math.floor((screenY - gridOriginY) / cellSize);
+    return { x: gridX, y: gridY };
   }
   
   // NEW key handler: Only arrow up/down move verticalPan.
@@ -682,8 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (roomData) {
         let owner = null;
         if (roomData.status === 'constructed') {
-          // Fetch owner information (replace with actual API endpoint)
-          owner = await fetchRoomOwner(roomData.roomID);
+          // Use roomData.id (not roomData.roomID)
+          owner = await fetchRoomOwner(roomData.id);
         }
         roomPopup.show(roomData, owner);
       }

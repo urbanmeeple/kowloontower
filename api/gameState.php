@@ -12,36 +12,45 @@ function writeLog($message) {
     file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
 }
 
+// Load data from appCache.json instead of querying the database
+$appCacheFile = dirname(__FILE__) . '/../temp/appCache.json';
+$appCacheJson = file_get_contents($appCacheFile);
+if ($appCacheJson === false) {
+    writeLog("Could not read appCache file.");
+    $appCacheJson = '{}';
+}
+$appCacheData = json_decode($appCacheJson, true);
+if (!is_array($appCacheData)) {
+    $appCacheData = [];
+}
+
+$playersData       = isset($appCacheData['players'])       ? $appCacheData['players']       : [];
+$roomsData         = isset($appCacheData['rooms'])         ? $appCacheData['rooms']         : [];
+$playersRoomsData  = isset($appCacheData['players_rooms']) ? $appCacheData['players_rooms'] : [];
+$gameStateData     = isset($appCacheData['game_state'])    ? $appCacheData['game_state']    : [];
+
 // Function to get player data including room count
 function getPlayerData($playerID) {
-    global $pdo;
-    
+    global $playersData, $playersRoomsData;
     try {
-        // Get basic player info
-        $stmt = $pdo->prepare("
-            SELECT * FROM players 
-            WHERE playerID = :playerID
-        ");
-        $stmt->execute(['playerID' => $playerID]);
-        $player = $stmt->fetch();
-        
+        $player = null;
+        foreach ($playersData as $p) {
+            if ($p['playerID'] == $playerID) {
+                $player = $p;
+                break;
+            }
+        }
         if (!$player) {
             writeLog("Player not found with ID: $playerID");
             return null;
         }
-        
-        // Count rooms owned by this player
-        $roomStmt = $pdo->prepare("
-            SELECT COUNT(*) as roomCount 
-            FROM players_rooms 
-            WHERE playerID = :playerID
-        ");
-        $roomStmt->execute(['playerID' => $playerID]);
-        $roomData = $roomStmt->fetch();
-        
-        // Add room count to player data
-        $player['roomCount'] = (int)$roomData['roomCount'];
-        
+        $roomCount = 0;
+        foreach ($playersRoomsData as $pr) {
+            if ($pr['playerID'] == $playerID) {
+                $roomCount++;
+            }
+        }
+        $player['roomCount'] = $roomCount;
         writeLog("Retrieved player data for ID: $playerID, room count: {$player['roomCount']}");
         return $player;
     } catch (Exception $e) {
@@ -56,30 +65,21 @@ function getPlayerData($playerID) {
  * @return array Associative array of rooms by coordinates
  */
 function getRooms() {
-    global $pdo;
-    
+    global $roomsData;
     try {
-        $stmt = $pdo->query("
-            SELECT location_x, location_y, sector_type, roomID, status 
-            FROM rooms
-        ");
-        
         $rooms = [];
-        while ($room = $stmt->fetch()) {
+        foreach ($roomsData as $room) {
             $x = (int)$room['location_x'];
             $y = (int)$room['location_y'];
-            
             if (!isset($rooms[$y])) {
                 $rooms[$y] = [];
             }
-            
             $rooms[$y][$x] = [
-                'type' => $room['sector_type'],
-                'id' => $room['roomID'],
-                'status' => $room['status'] // Include the status field
+                'type'   => $room['sector_type'],
+                'id'     => $room['roomID'],
+                'status' => $room['status']
             ];
         }
-        
         return $rooms;
     } catch (Exception $e) {
         writeLog("Error getting rooms: " . $e->getMessage());
@@ -93,16 +93,11 @@ function getRooms() {
  * @return string|null The last_update_datetime as a string or null if not found
  */
 function getLastUpdateTime() {
-    global $pdo;
-    
+    global $gameStateData;
     try {
-        $stmt = $pdo->query("SELECT last_update_datetime FROM game_state LIMIT 1");
-        $row = $stmt->fetch();
-        
-        if ($row) {
-            return $row['last_update_datetime'];
+        if (isset($gameStateData['last_update_datetime'])) {
+            return $gameStateData['last_update_datetime'];
         }
-        
         return null;
     } catch (Exception $e) {
         writeLog("Error getting last update time: " . $e->getMessage());

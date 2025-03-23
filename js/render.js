@@ -25,6 +25,11 @@ export function initRender(canvas, backgroundContainer) {
     // Ensure gameTwo renders above backgroundTwo by adjusting z-index.
     backgroundTwo.renderer.domElement.style.zIndex = '0';
     gameTwo.renderer.domElement.style.zIndex = '1';
+
+    // NEW: Set verticalPan so that the grid's base is at the bottom of the screen.
+    const towerBottom = GRID_TOP_PADDING_CELLS * config.cellSize + config.gridHeight * config.cellSize;
+    verticalPan = gameTwo.height - towerBottom;
+    
     updateGridOffset(gameTwo);
   } catch (error) {
     console.error("Error during initRender:", error);

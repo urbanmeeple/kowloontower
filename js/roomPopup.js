@@ -133,3 +133,5 @@ class RoomPopup {
         this.popupContainer.style.display = 'none';
     }
 }
+
+export const roomPopup = new RoomPopup();

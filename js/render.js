@@ -85,19 +85,12 @@ export function renderGame() {
     
     // Render ground rectangle behind the grid.
     const towerBottom = GRID_TOP_PADDING_CELLS * config.cellSize + config.gridHeight * config.cellSize;
-    const groundTop = towerBottom;
-    const gameView = {
-      left: -GRID_LEFT_PADDING_CELLS * config.cellSize,
-      top: -GRID_TOP_PADDING_CELLS * config.cellSize,
-      // Updated width calculation: extends to the right edge of the screen
-      width: gameTwo.width + GRID_LEFT_PADDING_CELLS * config.cellSize,
-      height: config.gridHeight * config.cellSize + (GRID_TOP_PADDING_CELLS + GRID_BOTTOM_EXTRA_CELLS) * config.cellSize
-    };
-    const groundBottom = gameView.top + gameView.height;
-    const groundHeight = groundBottom - groundTop;
-    const groundCenterX = gameView.left + gameView.width / 2;
-    const groundCenterY = groundTop + groundHeight / 2;
-    const groundRect = new Two.Rectangle(groundCenterX, groundCenterY, gameView.width, groundHeight);
+    // Calculate ground rectangle to fill full screen horizontally.
+    const groundWidth = gameTwo.width;  // full canvas width
+    const groundHeight = config.gridHeight * config.cellSize + (GRID_TOP_PADDING_CELLS + GRID_BOTTOM_EXTRA_CELLS) * config.cellSize;
+    const groundCenterX = gameTwo.width / 2;
+    const groundCenterY = towerBottom + groundHeight / 2;
+    const groundRect = new Two.Rectangle(groundCenterX, groundCenterY, groundWidth, groundHeight);
     groundRect.fill = config.colors.ground;
     groundRect.noStroke();
     parentGroup.add(groundRect);

@@ -137,7 +137,9 @@ export function renderGame() {
           if (roomData.status === 'constructed') {
             const room = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
             room.fill = config.colors.room;
-            room.noStroke();
+            // Render constructed rooms with a black border.
+            room.stroke = '#000000';
+            room.linewidth = 2;
             gridGroup.add(room);
             // Render sector icon.
             const sectorType = roomData.type || 'default';
@@ -154,7 +156,8 @@ export function renderGame() {
           } else if (roomData.status === 'planned') {
             const plannedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
             plannedRoom.fill = 'rgba(255, 0, 0, 0.2)';
-            plannedRoom.stroke = '#FF0000';
+            // Render planned rooms with a grey border.
+            plannedRoom.stroke = '#808080';
             plannedRoom.linewidth = 2;
             gridGroup.add(plannedRoom);
             const sectorType = roomData.type || 'default';

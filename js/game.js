@@ -42,8 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Game state with selected cells and rooms
   let gameState = {
     grid: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(null)),
-    selected: Array(config.gridHeight).fill().map(() => Array(config.gridWidth).fill(0)),
-    pendingSelections: [], // Store coordinates of selections not yet sent to server
     lastUpdate: null,
     // Player state
     player: {
@@ -280,15 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
             iconText.fill = 'rgba(255, 255, 255, 0.5)';
             gridGroup.add(iconText);
           }
-        } else if (gameState.selected[y][x] === 1) {
-          const selectedSpace = new Two.Rectangle(
-            x * cellSize + cellSize/2, 
-            y * cellSize + cellSize/2,
-            cellSize - 2, cellSize - 2
-          );
-          selectedSpace.fill = config.colors.selected;
-          selectedSpace.noStroke();
-          gridGroup.add(selectedSpace);
         }
       }
     }
@@ -320,40 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return { x, y };
   }
   
-  // Handle user interactions
-  function handleCanvasClick(event) {
-    // Don't process as a click if we're currently panning
-    if (config.view.isPanning) return;
-    
-    const rect = gameCanvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    
-    // Convert mouse position to grid coordinates with zoom and pan consideration
-    const gridPos = screenToGrid(mouseX, mouseY);
-    
-    // Check if click is within grid bounds
-    if (gridPos.x >= 0 && gridPos.x < config.gridWidth && 
-        gridPos.y >= 0 && gridPos.y < config.gridHeight) {
-      
-      // Only allow selecting an empty cell that isn't already selected
-      if (!gameState.grid[gridPos.y][gridPos.x] && 
-          gameState.selected[gridPos.y][gridPos.x] === 0) {
-        
-        // Mark as selected in local state
-        gameState.selected[gridPos.y][gridPos.x] = 1;
-        
-        // Add to pending selections array for next update
-        gameState.pendingSelections.push({x: gridPos.x, y: gridPos.y});
-        
-        // Redraw the game (but don't send to server)
-        renderGame();
-        
-        console.log(`Added selection at (${gridPos.x},${gridPos.y}) to pending queue. Total pending: ${gameState.pendingSelections.length}`);
-      }
-    }
-  }
-
   // NEW key handler: Only arrow up/down move verticalPan.
   function handleArrowKeys(event) {
     const panStep = 15; // pixels
@@ -408,12 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await response.json();
 
-        // Check if the server is signaling that an update is about to occur
-        if (data.updateInProgress && gameState.pendingSelections.length > 0) {
-          // If update is in progress, send our pending selections
-          await sendPendingSelections();
-        }
-        
         if (data.grid) {
           // Store next update time if provided
           if (data.nextUpdateTime) {
@@ -421,12 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Calculate time until next update
             const timeUntilUpdate = config.nextUpdateTime - new Date();
-            
-            // If update is imminent (within 5 seconds), send pending selections
-            if (timeUntilUpdate > 0 && timeUntilUpdate < 5000 && gameState.pendingSelections.length > 0) {
-              console.log("Update is imminent, sending pending selections");
-              await sendPendingSelections();
-            }
           }
           
           // Check if the grid has changed
@@ -463,22 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update the grid with server data
             gameState.grid = data.grid;
             
-            // Clear any selections that are now rooms
-            // This prevents selecting spots that became rooms in the last update
-            for (let y = 0; y < config.gridHeight; y++) {
-              for (let x = 0; x < config.gridWidth; x++) {
-                if (gameState.grid[y][x]) {
-                  // Remove from selected grid
-                  gameState.selected[y][x] = 0;
-                  
-                  // Remove from pending selections if present
-                  gameState.pendingSelections = gameState.pendingSelections.filter(
-                    sel => !(sel.x === x && sel.y === y)
-                  );
-                }
-              }
-            }
-            
             gameState.lastUpdate = new Date();
             renderGame();
           }
@@ -507,40 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 }
-  
-  // Send pending selections to the server during an update
-  async function sendPendingSelections() {
-    if (gameState.pendingSelections.length === 0) {
-      return; // Nothing to send
-    }
-    
-    try {
-      console.log(`Sending ${gameState.pendingSelections.length} pending selections to server`);
-      
-      const response = await fetch('api/sendSelections.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          selections: gameState.pendingSelections,
-          playerID: gameState.player.playerID
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log(`Sent ${gameState.pendingSelections.length} selections to server successfully`);
-        // Clear pending selections as they're now on the server
-        gameState.pendingSelections = [];
-      } else {
-        console.error('Failed to send selections:', data.error);
-      }
-    } catch (error) {
-      console.error('Error sending selections:', error);
-    }
-  }
   
   // Periodically check for updates
   function startAutoUpdates() {
@@ -762,9 +655,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set up event listeners
     window.addEventListener('resize', resizeCanvas);
-    
-    // Mouse event listeners
-    gameCanvas.addEventListener('click', handleCanvasClick);
     
     // NEW key listener for vertical panning:
     window.addEventListener('keydown', handleArrowKeys);

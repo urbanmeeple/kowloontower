@@ -88,40 +88,6 @@ function getRooms() {
 }
 
 /**
- * Get current selections from the database
- * 
- * @return array Associative array of selections by coordinates
- */
-function getSelections() {
-    global $pdo;
-    
-    try {
-        $stmt = $pdo->query("
-            SELECT location_x, location_y, playerID
-            FROM selected_spaces
-            WHERE processed = 0
-        ");
-        
-        $selections = [];
-        while ($selection = $stmt->fetch()) {
-            $x = (int)$selection['location_x'];
-            $y = (int)$selection['location_y'];
-            
-            if (!isset($selections[$y])) {
-                $selections[$y] = [];
-            }
-            
-            $selections[$y][$x] = $selection['playerID'];
-        }
-        
-        return $selections;
-    } catch (Exception $e) {
-        writeLog("Error getting selections: " . $e->getMessage());
-        return [];
-    }
-}
-
-/**
  * Get the last update time from the game_state table
  * 
  * @return string|null The last_update_datetime as a string or null if not found
@@ -182,7 +148,6 @@ try {
 
     // Initialize empty grid and selections grid
     $grid = array_fill(0, $gridHeight, array_fill(0, $gridWidth, null));
-    $selected = array_fill(0, $gridHeight, array_fill(0, $gridWidth, 0));
 
     // Get rooms from the database
     $rooms = getRooms();
@@ -193,18 +158,6 @@ try {
         foreach ($row as $x => $room) {
             if ($x >= $gridWidth) break; // Prevent out-of-bounds processing
             $grid[$y][$x] = $room;
-        }
-    }
-
-    // Get selections from the database
-    $selections = getSelections();
-
-    // Fill in the selections grid
-    foreach ($selections as $y => $row) {
-        foreach ($row as $x => $playerID) {
-            if ($y < $gridHeight && $x < $gridWidth) {
-                $selected[$y][$x] = 1;
-            }
         }
     }
 
@@ -226,7 +179,6 @@ try {
     // Build the state object
     $state = [
         'grid' => $grid,
-        'selected' => $selected,
         'timestamp' => time(),
         'lastUpdateTime' => $lastUpdateTimeIso, // ISO format with UTC timezone marker
         'lastUpdateTimestamp' => $lastUpdateTimestamp,

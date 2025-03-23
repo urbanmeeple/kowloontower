@@ -89,7 +89,8 @@ export function renderGame() {
     const gameView = {
       left: -GRID_LEFT_PADDING_CELLS * config.cellSize,
       top: -GRID_TOP_PADDING_CELLS * config.cellSize,
-      width: config.gridWidth * config.cellSize + 2 * GRID_LEFT_PADDING_CELLS * config.cellSize,
+      // Updated width calculation: extends to the right edge of the screen
+      width: gameTwo.width + GRID_LEFT_PADDING_CELLS * config.cellSize,
       height: config.gridHeight * config.cellSize + (GRID_TOP_PADDING_CELLS + GRID_BOTTOM_EXTRA_CELLS) * config.cellSize
     };
     const groundBottom = gameView.top + gameView.height;

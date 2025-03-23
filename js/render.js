@@ -9,6 +9,14 @@ const GRID_BOTTOM_EXTRA_CELLS = 100;  // Extra bottom cells for gameView height
 export let gameTwo, backgroundTwo;
 export let verticalPan = -400; // starting vertical offset
 
+// NEW: Export getter and setter for verticalPan.
+export function getVerticalPan() {
+    return verticalPan;
+}
+export function setVerticalPan(newPan) {
+    verticalPan = newPan;
+}
+
 export function initRender(canvas, backgroundContainer) {
   try {
     // Create Two.js instances for background and game rendering.

@@ -1,5 +1,5 @@
 import { config } from './config.js';
-import { screenToGrid, renderGame } from './render.js';
+import { screenToGrid, renderGame, getVerticalPan, setVerticalPan } from './render.js';
 import { gameState } from './config.js';
 import { roomPopup } from './roomPopup.js'; // Assumes roomPopup.js exports a class instance
 
@@ -28,12 +28,12 @@ export function initInputHandlers(gameCanvas) {
     window.addEventListener('keydown', event => {
       try {
         const PAN_STEP = config.view.keyPanAmount;
-        // This must adjust verticalPan in the main render module; assume renderGame uses the global verticalPan.
+        const currentPan = getVerticalPan();
         if (event.key === 'ArrowUp') {
-          verticalPan = verticalPan + PAN_STEP;
+          setVerticalPan(currentPan + PAN_STEP);
           renderGame();
         } else if (event.key === 'ArrowDown') {
-          verticalPan = verticalPan - PAN_STEP;
+          setVerticalPan(currentPan - PAN_STEP);
           renderGame();
         }
       } catch (error) {

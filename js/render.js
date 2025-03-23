@@ -86,7 +86,7 @@ export function renderGame() {
     const groundWidth = gameTwo.width;  // full canvas width
     const groundHeight = config.gridHeight * config.cellSize + (GRID_TOP_PADDING_CELLS + GRID_BOTTOM_EXTRA_CELLS) * config.cellSize;
     const groundCenterX = gameTwo.width / 2;
-    const groundCenterY = towerBottom + groundHeight / 2;
+    const groundCenterY = towerBottom + groundHeight / 2 + verticalPan;
     const groundRect = new Two.Rectangle(groundCenterX, groundCenterY, groundWidth, groundHeight);
     groundRect.fill = config.colors.ground;
     groundRect.noStroke();

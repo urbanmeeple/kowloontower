@@ -1,8 +1,8 @@
 // This file defines configuration constants, initial game state, and helper constants.
 export const config = {
-  gridWidth: 20, // Number of cells horizontally
+  gridWidth: 10, // Number of cells horizontally
   gridHeight: 30, // Number of cells vertically
-  cellSize: 20, // Size of each cell in pixels
+  cellSize: 30, // Size of each cell in pixels
   colors: {
     background: { top: '#FFEB3B', brightness: 1.0 },
     grid: '#333333',

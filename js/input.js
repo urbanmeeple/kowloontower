@@ -48,7 +48,7 @@ export function initInputHandlers(gameCanvas) {
       try {
         if (event.touches.length === 1) {
           touchStartY = event.touches[0].clientY;
-          initialVerticalPan = verticalPan;
+          initialVerticalPan = getVerticalPan(); // Use getter to capture current pan
         }
       } catch (error) {
         console.error("Error in touchstart handler:", error);
@@ -59,7 +59,7 @@ export function initInputHandlers(gameCanvas) {
       try {
         if (event.touches.length === 1) {
           const deltaY = event.touches[0].clientY - touchStartY;
-          verticalPan = initialVerticalPan + deltaY;
+          setVerticalPan(initialVerticalPan + deltaY); // Use setter to update vertical pan
           renderGame();
         }
         event.preventDefault();

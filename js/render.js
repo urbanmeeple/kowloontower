@@ -28,7 +28,7 @@ export function initRender(canvas, backgroundContainer) {
 
     // NEW: Set verticalPan so that the grid's base is at the bottom of the screen.
     const towerBottom = GRID_TOP_PADDING_CELLS * config.cellSize + config.gridHeight * config.cellSize;
-    verticalPan = gameTwo.height - towerBottom + config.cellSize;
+    verticalPan = gameTwo.height - towerBottom - config.cellSize;
     
     updateGridOffset(gameTwo);
   } catch (error) {

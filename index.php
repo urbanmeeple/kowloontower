@@ -12,8 +12,6 @@
     <div id="background-container"></div>
     <canvas id="gameCanvas"></canvas>
   </div>
-  <script src="js/playerHUD.js"></script>
-  <script src="js/roomPopup.js"></script>
-  <script src="js/game.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

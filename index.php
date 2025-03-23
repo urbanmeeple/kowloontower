@@ -13,6 +13,7 @@
     <canvas id="gameCanvas"></canvas>
   </div>
   <script src="js/playerHUD.js"></script>
+  <script src="js/roomPopup.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

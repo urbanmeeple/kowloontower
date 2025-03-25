@@ -1,6 +1,6 @@
 import { config } from './config.js.php';
 import { screenToGrid, renderGame, getVerticalPan, setVerticalPan } from './render.js';
-import { getGameState } from './state.js'; // Import getGameState from state.js
+import { getLocalGameState } from './state.js';
 import { roomPopup } from './roomPopup.js'; // Assumes roomPopup.js exports a class instance
 
 // Initialize input event handlers for mouse and key events.
@@ -78,7 +78,7 @@ export function initInputHandlers(gameCanvas) {
 
 async function showRoomDetails(gridX, gridY) {
   try {
-    const gameState = getGameState(); // Fetch the local game state
+    const gameState = getLocalGameState(); // Fetch the local game state
     const roomData = gameState.rooms.find(
       room => room.location_x === gridX && room.location_y === gridY
     );

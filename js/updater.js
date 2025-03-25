@@ -1,7 +1,7 @@
 import { config } from './config.js.php';
 import { renderGame } from './render.js';
 import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports a valid instance
-import { updateLocalGameState, getGameState } from './state.js'; // Import state management functions
+import { updateLocalGameState, getLocalGameState } from './state.js'; // Import state management functions
 
 // Fetch updated game state from the server.
 export async function fetchUpdatedGameState() {
@@ -25,7 +25,7 @@ export async function fetchUpdatedGameState() {
 // Function to update the player HUD and re-render the game
 export function updateGameAndHUD() {
   try {
-    const gameState = getGameState();
+    const gameState = getLocalGameState();
 
     // Fetch the player's username from localStorage
     const storedUsername = localStorage.getItem(config.player.usernameKey);

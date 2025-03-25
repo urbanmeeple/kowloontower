@@ -2,7 +2,7 @@
 let gameState = {};
 
 // Function to get the current game state
-export function getGameState() {
+export function getLocalGameState() {
   return gameState;
 }
 

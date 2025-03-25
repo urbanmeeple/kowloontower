@@ -50,9 +50,9 @@ export async function startAutoUpdates() {
     if (!response.ok) throw new Error(`Server responded with ${response.status}`);
     const data = await response.json();
     // localCacheTimestamp is a variable storing the last known cache update time.
-    if (data.lastCacheUpdate && data.lastCacheUpdate > localCacheTimestamp) {
+    if (data.lastCacheUpdate && data.lastCacheUpdate > config.localCacheTimestamp) {
       // New update available: fetch updated cache data
-      localCacheTimestamp = data.lastCacheUpdate;
+      config.localCacheTimestamp = data.lastCacheUpdate;
       console.log("New cache update detected. Fetching updated game state...");
       await fetchUpdatedGameState(); // Your function to call getCache.php and update local game state
 

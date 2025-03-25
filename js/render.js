@@ -1,4 +1,5 @@
 import { config } from './config.js.php';
+import { getLocalGameState } from './state.js';
 
 // Constants to replace magic numbers
 const GRID_LEFT_PADDING_CELLS = 100;  // Extra cells on left/right for horizontal centering
@@ -84,6 +85,10 @@ function adjustBrightness(hexColor, factor) {
 
 export function renderGame(rooms) {
   try {
+    if (!rooms) {
+      console.error("Error in renderGame: 'rooms' is undefined or null.");
+      return;
+    }
     gameTwo.clear();
 
     // Render ground rectangle directly in the scene (without parent's translation).
@@ -233,7 +238,8 @@ export function resizeCanvas(gameCanvas) {
     updateGridOffset(gameTwo);
     // Re-render the background and game.
     renderBackground();
-    renderGame();
+    const gameState = getLocalGameState(); // Get the local game state
+    renderGame(gameState.rooms); // Pass rooms to renderGame
   } catch (error) {
     console.error("Error in resizeCanvas:", error);
   }

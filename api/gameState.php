@@ -131,15 +131,14 @@ function getNextUpdateTime() {
 }
 
 try {
-    // Add a timeout to prevent long-running queries
-    $pdo->setAttribute(PDO::ATTR_TIMEOUT, 5);
 
     // Get player ID from request parameters (if provided)
     $playerID = isset($_GET['playerID']) ? $_GET['playerID'] : null;
 
-    // Grid dimensions
-    $gridHeight = 30;
-    $gridWidth = 20;
+    // Get client configuration
+    $config = getClientConfig();
+    $gridWidth = $config['gridWidth'];
+    $gridHeight = $config['gridHeight'];
 
     // Initialize empty grid and selections grid
     $grid = array_fill(0, $gridHeight, array_fill(0, $gridWidth, null));

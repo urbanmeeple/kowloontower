@@ -82,7 +82,7 @@ function adjustBrightness(hexColor, factor) {
   }
 }
 
-export function renderGame() {
+export function renderGame(rooms) {
   try {
     gameTwo.clear();
 
@@ -105,7 +105,7 @@ export function renderGame() {
     // Create child group for the tower grid.
     const gridGroup = new Two.Group();
     gridGroup.translation.set(GRID_LEFT_PADDING_CELLS * config.cellSize, GRID_TOP_PADDING_CELLS * config.cellSize);
-    
+
     // Draw grid lines.
     for (let x = 0; x <= config.gridWidth; x++) {
       const line = new Two.Line(
@@ -125,57 +125,52 @@ export function renderGame() {
       line.linewidth = 1;
       gridGroup.add(line);
     }
-    
-    // Draw rooms using server data from gameState.grid
-    for (let y = 0; y < config.gridHeight; y++) {
-      for (let x = 0; x < config.gridWidth; x++) {
-        const roomData = gameState.grid[y][x];
-        if (roomData) {
-          const roomX = x * config.cellSize + config.cellSize / 2;
-          const roomY = y * config.cellSize + config.cellSize / 2;
-          const roomSize = config.cellSize - 2;
-          if (roomData.status === 'constructed') {
-            const room = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
-            room.fill = config.colors.room;
-            // Render constructed rooms with a black border.
-            room.stroke = '#000000';
-            room.linewidth = 2;
-            gridGroup.add(room);
-            // Render sector icon.
-            const sectorType = roomData.type || 'default';
-            const icon = sectorIcons[sectorType] || sectorIcons.default;
-            const iconText = new Two.Text(icon, roomX, roomY, {
-              size: config.cellSize * 0.8,
-              alignment: 'center',
-              baseline: 'middle',
-              style: 'normal',
-              family: 'Arial'
-            });
-            iconText.fill = '#FFFFFF';
-            gridGroup.add(iconText);
-          } else if (roomData.status === 'planned') {
-            const plannedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
-            plannedRoom.fill = 'rgba(255, 0, 0, 0.2)';
-            // Render planned rooms with a grey border.
-            plannedRoom.stroke = '#808080';
-            plannedRoom.linewidth = 2;
-            gridGroup.add(plannedRoom);
-            const sectorType = roomData.type || 'default';
-            const icon = sectorIcons[sectorType] || sectorIcons.default;
-            const iconText = new Two.Text(icon, roomX, roomY, {
-              size: config.cellSize * 0.8,
-              alignment: 'center',
-              baseline: 'middle',
-              style: 'normal',
-              family: 'Arial'
-            });
-            iconText.fill = 'rgba(255, 255, 255, 0.5)';
-            gridGroup.add(iconText);
-          }
-        }
+
+    // Draw rooms using the provided rooms data
+    rooms.forEach(room => {
+      const roomX = room.location_x * config.cellSize + config.cellSize / 2;
+      const roomY = room.location_y * config.cellSize + config.cellSize / 2;
+      const roomSize = config.cellSize - 2;
+
+      if (room.status === 'constructed') {
+        const roomRect = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
+        roomRect.fill = config.colors.room;
+        roomRect.stroke = '#000000';
+        roomRect.linewidth = 2;
+        gridGroup.add(roomRect);
+
+        const sectorType = room.sector_type || 'default';
+        const icon = sectorIcons[sectorType] || sectorIcons.default;
+        const iconText = new Two.Text(icon, roomX, roomY, {
+          size: config.cellSize * 0.8,
+          alignment: 'center',
+          baseline: 'middle',
+          style: 'normal',
+          family: 'Arial'
+        });
+        iconText.fill = '#FFFFFF';
+        gridGroup.add(iconText);
+      } else if (room.status === 'planned') {
+        const plannedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
+        plannedRoom.fill = 'rgba(255, 0, 0, 0.2)';
+        plannedRoom.stroke = '#808080';
+        plannedRoom.linewidth = 2;
+        gridGroup.add(plannedRoom);
+
+        const sectorType = room.sector_type || 'default';
+        const icon = sectorIcons[sectorType] || sectorIcons.default;
+        const iconText = new Two.Text(icon, roomX, roomY, {
+          size: config.cellSize * 0.8,
+          alignment: 'center',
+          baseline: 'middle',
+          style: 'normal',
+          family: 'Arial'
+        });
+        iconText.fill = 'rgba(255, 255, 255, 0.5)';
+        gridGroup.add(iconText);
       }
-    }
-    
+    });
+
     parentGroup.add(gridGroup);
     gameTwo.add(parentGroup);
     gameTwo.update();

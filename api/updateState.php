@@ -28,8 +28,8 @@ if (!$isCommandLine && !$hasValidKey) {
 }
 
 // Define grid dimensions from centralized config
-$gridWidth = isset($config['gridWidth']) ? $config['gridWidth'] : 20;
-$gridHeight = isset($config['gridHeight']) ? $config['gridHeight'] : 30;
+$gridWidth = $config['gridWidth'];
+$gridHeight = $config['gridHeight'];
 
 /**
  * Add new planned rooms to the game
@@ -142,6 +142,28 @@ function cacheGameData() {
     // Fetch game state
     $stmtGameState = $pdo->query("SELECT * FROM game_state");
     $data['game_state'] = $stmtGameState->fetchAll(PDO::FETCH_ASSOC);
+
+    // Build a mapping from playerID to username
+    $playerIDToUsername = [];
+    foreach ($data['players'] as &$p) {
+        $playerIDToUsername[$p['playerID']] = $p['username'];
+        unset($p['playerID']); // Remove playerID from the players array
+    }
+    unset($p);
+
+    // Replace playerID with username in 'bids'
+    foreach ($data['bids'] as &$bid) {
+        $bid['username'] = $playerIDToUsername[$bid['playerID']] ?? 'Unknown';
+        unset($bid['playerID']);
+    }
+    unset($bid);
+
+    // Replace playerID with username in 'players_rooms'
+    foreach ($data['players_rooms'] as &$pr) {
+        $pr['username'] = $playerIDToUsername[$pr['playerID']] ?? 'Unknown';
+        unset($pr['playerID']);
+    }
+    unset($pr);
 
     file_put_contents($appCacheFile, json_encode($data));
     writeLog("Cached game data to {$appCacheFile}");

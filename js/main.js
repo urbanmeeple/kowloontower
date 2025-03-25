@@ -2,7 +2,6 @@ import { initRender, animateBackground, resizeCanvas } from './render.js';
 import { initInputHandlers } from './input.js';
 import { startAutoUpdates } from './updater.js';
 import { initializePlayer } from './player.js'; // New player module import
-import { playerHUD } from './playerHUD.js'; // if exported
 // Import roomPopup if needed.
 
 document.addEventListener('DOMContentLoaded', () => {

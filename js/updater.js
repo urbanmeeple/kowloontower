@@ -1,72 +1,66 @@
-import { config, gameState } from './config.js.php';
+import { config } from './config.js.php';
 import { renderGame } from './render.js';
 import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports a valid instance
+import { updateLocalGameState, getGameState } from './state.js'; // Import state management functions
 
 // Fetch updated game state from the server.
-export async function fetchGameState() {
+export async function fetchUpdatedGameState() {
   try {
-    const controller = new AbortController();
-    const TIMEOUT_MS = 5000;
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const playerID = localStorage.getItem(config.player.storageKey);
-    const response = await fetch(`api/gameState.php?playerID=${encodeURIComponent(playerID)}`, {
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
+    const response = await fetch('api/getCache.php');
     if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
     const data = await response.json();
-    // Process received data.
-    if (data.grid) {
-      // Check if grid changed (simple string comparison)
-      const currentGrid = JSON.stringify(gameState.grid);
-      const newGrid = JSON.stringify(data.grid);
-      if (currentGrid !== newGrid) {
-        gameState.grid = data.grid;
-        gameState.lastUpdate = new Date();
-        renderGame();
-      }
-      // Update HUD timer if provided.
-      if (data.lastUpdateTime) {
-        playerHUD.setTimerFromServer(data.lastUpdateTime);
-      } else if (data.lastUpdateTimestamp) {
-        playerHUD.setTimerFromServer(data.lastUpdateTimestamp);
-      } else {
-        playerHUD.resetUpdateTimer();
-      }
-      config.lastStateTimestamp = data.timestamp || new Date().getTime();
-      // Update player data if provided.
-      if (data.player) {
-        gameState.player = { ...gameState.player, ...data.player };
-        playerHUD.update(gameState.player);
-      }
-    }
+
+    // Update the local in-memory game state
+    updateLocalGameState(data);
+
+    // Update the game and HUD after the local game state is updated
+    updateGameAndHUD();
+
+    console.log("Game state successfully updated from cache.");
   } catch (error) {
-    console.error("Error in fetchGameState:", error);
+    console.error("Error in fetchUpdatedGameState:", error);
+  }
+}
+
+// Function to update the player HUD and re-render the game
+export function updateGameAndHUD() {
+  try {
+    const gameState = getGameState();
+
+    // Fetch the player's username from localStorage
+    const storedUsername = localStorage.getItem(config.player.usernameKey);
+
+    // Update the player HUD with the current player's data
+    const currentPlayer = gameState.players.find(player => player.username === storedUsername);
+    if (currentPlayer) {
+      playerHUD.update(currentPlayer);
+    }
+
+    // Re-render the game using the updated game state
+    renderGame(gameState.rooms);
+  } catch (error) {
+    console.error("Error in updateGameAndHUD:", error);
   }
 }
 
 // Begin periodic updates.
-export function startAutoUpdates() {
+export async function startAutoUpdates() {
   try {
-    let retryCount = 0;
-    const maxRetries = 3;
-    async function updateLoop() {
-      if (retryCount >= maxRetries) {
-        console.error("Max retries reached. Stopping updates.");
-        return;
-      }
-      try {
-        await fetchGameState();
-        retryCount = 0;
-      } catch (error) {
-        retryCount++;
-        console.error(`Retrying (${retryCount}/${maxRetries})...`);
-      } finally {
-        setTimeout(updateLoop, config.updateInterval);
-      }
+    const response = await fetch('api/getCacheStatus.php');
+    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+    const data = await response.json();
+    // localCacheTimestamp is a variable storing the last known cache update time.
+    if (data.lastCacheUpdate && data.lastCacheUpdate > localCacheTimestamp) {
+      // New update available: fetch updated cache data
+      localCacheTimestamp = data.lastCacheUpdate;
+      console.log("New cache update detected. Fetching updated game state...");
+      await fetchUpdatedGameState(); // Your function to call getCache.php and update local game state
+
     }
-    updateLoop();
   } catch (error) {
-    console.error("Error in startAutoUpdates:", error);
+    console.error("Error polling cache status:", error);
+  } finally {
+    // Poll periodically (e.g., every 10 seconds)
+    setTimeout(startAutoUpdates, config.autoUpdatePollingInterval);
   }
 }

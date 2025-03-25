@@ -58,6 +58,7 @@ export async function fetchPlayerData(playerID) {
                 ...data.player,
                 isNewPlayer: false
             };
+            savePlayerUsernameToStorage(data.player.username); // Save username to localStorage
             playerHUD.update(playerState);
             showWelcomeMessage(false);
             return true;
@@ -93,8 +94,9 @@ export async function createNewPlayer() {
                 roomCount: 0,
                 isNewPlayer: true
             };
-            playerHUD.update(playerState);
             savePlayerIDToStorage(data.player.playerID);
+            savePlayerUsernameToStorage(data.player.username); // Save username to localStorage
+            playerHUD.update(playerState);
             showWelcomeMessage(true);
             return true;
         } else {
@@ -105,6 +107,14 @@ export async function createNewPlayer() {
         console.error("Error creating new player:", error);
         return false;
     }
+}
+
+/**
+ * Save player's username to localStorage.
+ * @param {string} username - The username to save.
+ */
+function savePlayerUsernameToStorage(username) {
+    localStorage.setItem(config.player.usernameKey, username);
 }
 
 /**

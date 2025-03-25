@@ -49,14 +49,14 @@ class RoomPopup {
         this.popupContainer.appendChild(this.closeButton);
     }
 
-    show(roomData, owner = null) {
+    show(roomData) {
         // Clear previous content
         this.popupContainer.innerHTML = '';
         this.setupStyles(); // Re-add styles and close button
 
         // Room type and sector
         const roomType = roomData.status === 'constructed' ? 'Constructed Room' : 'Planned Room';
-        const sectorType = roomData.type || 'Unknown Sector';
+        const sectorType = roomData.sector_type || 'Unknown Sector';
 
         // Create elements
         const title = document.createElement('h2');
@@ -71,9 +71,9 @@ class RoomPopup {
 
         if (roomData.status === 'constructed') {
             // Owner information
-            if (owner) {
+            if (roomData.username) {
                 const ownerInfo = document.createElement('p');
-                ownerInfo.textContent = `Owner: ${owner.username}`;
+                ownerInfo.textContent = `Owner: ${roomData.username}`;
                 ownerInfo.style.marginBottom = '10px';
                 this.popupContainer.appendChild(ownerInfo);
             }

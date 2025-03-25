@@ -78,6 +78,7 @@ export function initInputHandlers(gameCanvas) {
 
 async function showRoomDetails(gridX, gridY) {
   try {
+    //TODO: Fetch gameState from gameState.php instead of using gameState from config
     const roomData = gameState.grid[gridY][gridX];
     if (roomData) {
       let owner = null;

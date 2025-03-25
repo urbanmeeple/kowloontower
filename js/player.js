@@ -1,6 +1,28 @@
 // This file contains functions to manage the player including fetching, creation, and initialization.
-import { config, gameState } from './config.js.php';
+import { config } from './config.js.php';
 import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports an instance
+
+// Local player state to replace gameState.player usage
+let playerState = {
+    playerID: null,
+    username: '',
+    money: 0,
+    roomCount: 0,
+    isNewPlayer: false,
+    stock_housing: 0,
+    stock_entertainment: 0,
+    stock_weapons: 0, 
+    stock_food: 0,
+    stock_technical: 0
+};
+
+/**
+ * Get current player state
+ * @returns {Object} The current player state
+ */
+export function getPlayerState() {
+    return playerState;
+}
 
 /**
  * Check if a player ID exists in localStorage.
@@ -31,12 +53,12 @@ export async function fetchPlayerData(playerID) {
         }
         const data = await response.json();
         if (data.success && data.player) {
-            gameState.player = {
-                ...gameState.player,
+            playerState = {
+                ...playerState,
                 ...data.player,
                 isNewPlayer: false
             };
-            playerHUD.update(gameState.player);
+            playerHUD.update(playerState);
             showWelcomeMessage(false);
             return true;
         } else {
@@ -65,13 +87,13 @@ export async function createNewPlayer() {
         }
         const data = await response.json();
         if (data.success && data.player) {
-            gameState.player = {
-                ...gameState.player,
+            playerState = {
+                ...playerState,
                 ...data.player,
                 roomCount: 0,
                 isNewPlayer: true
             };
-            playerHUD.update(gameState.player);
+            playerHUD.update(playerState);
             savePlayerIDToStorage(data.player.playerID);
             showWelcomeMessage(true);
             return true;
@@ -109,8 +131,8 @@ function showWelcomeMessage(isNewPlayer) {
         textAlign: 'center'
     });
     welcomeMsg.textContent = isNewPlayer 
-        ? `Welcome to Kowloon Tower, ${gameState.player.username}!`
-        : `Welcome back, ${gameState.player.username}!`;
+        ? `Welcome to Kowloon Tower, ${playerState.username}!`
+        : `Welcome back, ${playerState.username}!`;
     document.body.appendChild(welcomeMsg);
     setTimeout(() => {
         welcomeMsg.style.opacity = '0';
@@ -139,5 +161,5 @@ export async function initializePlayer() {
         console.log('No player ID in storage, creating new player');
         await createNewPlayer();
     }
-    console.log('Player initialized:', gameState.player);
+    console.log('Player initialized:', playerState);
 }

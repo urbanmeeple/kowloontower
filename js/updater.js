@@ -127,9 +127,9 @@ export async function startAutoUpdates() {
  */
 async function checkAndFetchCache() {
   try {
-    // Get the last known timestamp
-    const lastKnownTimestamp = parseInt(localStorage.getItem(config.player.cacheTimestampKey) || '0');
-    
+    // Get the last known timestamp, defaulting to 0 if not set
+    const lastKnownTimestamp = parseInt(localStorage.getItem(config.player.cacheTimestampKey) || '0', 10);
+
     // Fetch current cache file timestamp
     const response = await fetch('api/getCacheStatus.php');
     if (!response.ok) throw new Error(`Server responded with ${response.status}`);

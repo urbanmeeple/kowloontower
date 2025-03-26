@@ -46,21 +46,29 @@ export function updateGameAndHUD() {
 // Begin periodic updates.
 export async function startAutoUpdates() {
   try {
+    // Try to fetch cache status immediately when starting auto-updates
+    await checkAndFetchCache();
+    
+    // Set up the periodic polling
+    setInterval(checkAndFetchCache, config.autoUpdatePollingInterval);
+  } catch (error) {
+    console.error("Error starting auto updates:", error);
+  }
+}
+
+// Separate function to check cache status and fetch if needed
+async function checkAndFetchCache() {
+  try {
     const response = await fetch('api/getCacheStatus.php');
     if (!response.ok) throw new Error(`Server responded with ${response.status}`);
     const data = await response.json();
-    // localCacheTimestamp is a variable storing the last known cache update time.
+    
     if (data.lastCacheUpdate && data.lastCacheUpdate > config.localCacheTimestamp) {
-      // New update available: fetch updated cache data
       config.localCacheTimestamp = data.lastCacheUpdate;
       console.log("New cache update detected. Fetching updated game state...");
-      await fetchUpdatedGameState(); // Your function to call getCache.php and update local game state
-
+      await fetchUpdatedGameState();
     }
   } catch (error) {
     console.error("Error polling cache status:", error);
-  } finally {
-    // Poll periodically (e.g., every 10 seconds)
-    setTimeout(startAutoUpdates, config.autoUpdatePollingInterval);
   }
 }

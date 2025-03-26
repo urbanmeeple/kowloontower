@@ -238,8 +238,14 @@ export function resizeCanvas(gameCanvas) {
     updateGridOffset(gameTwo);
     // Re-render the background and game.
     renderBackground();
-    const gameState = getLocalGameState(); // Get the local game state
-    renderGame(gameState.rooms); // Pass rooms to renderGame
+    
+    // Get the local game state but check if it has rooms data before rendering
+    const gameState = getLocalGameState();
+    if (gameState && gameState.rooms) {
+      renderGame(gameState.rooms);
+    } else {
+      console.log("Game state or rooms not available yet, skipping initial render");
+    }
   } catch (error) {
     console.error("Error in resizeCanvas:", error);
   }

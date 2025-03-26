@@ -1,10 +1,10 @@
 import { initRender, animateBackground, resizeCanvas } from './render.js';
 import { initInputHandlers } from './input.js';
-import { startAutoUpdates } from './updater.js';
-import { initializePlayer } from './player.js'; // New player module import
-// Import roomPopup if needed.
+import { startAutoUpdates, fetchUpdatedGameState } from './updater.js';
+import { initializePlayer } from './player.js';
+import { roomPopup } from './roomPopup.js'; // Import roomPopup for proper initialization
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   try {
     const gameCanvas = document.getElementById('gameCanvas');
     const backgroundContainer = document.getElementById('background-container');
@@ -18,22 +18,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Begin background animation.
     animateBackground();
     
-    // Start periodic game state updates.
-    startAutoUpdates();
+    // First load game state directly - this ensures we have data before rendering
+    console.log("Fetching initial game state...");
+    await fetchUpdatedGameState();
     
-    // Attach resize event listener using the new resizeCanvas function.
-    window.addEventListener('resize', () => resizeCanvas(gameCanvas));
-    
-    // Optionally, call resizeCanvas() immediately for a correct initial sizing.
+    // Only now resize canvas and render (after we have game state)
     resizeCanvas(gameCanvas);
     
-    // Initialize the player using functions from the new player.js module.
-    initializePlayer().then(() => {
-      // Once player is initialized, you can perform further actions here...
-      console.log("Player initialization complete.");
-    });
+    // Start periodic game state updates after initial load
+    startAutoUpdates();
     
-    // ...existing code for additional initialization...
+    // Attach resize event listener
+    window.addEventListener('resize', () => resizeCanvas(gameCanvas));
+    
+    // Initialize the player
+    await initializePlayer();
+    console.log("Player initialization complete.");
+    
   } catch (error) {
     console.error("Error in main initialization:", error);
   }

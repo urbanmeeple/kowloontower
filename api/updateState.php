@@ -27,9 +27,10 @@ if (!$isCommandLine && !$hasValidKey) {
     exit;
 }
 
-// Define grid dimensions from centralized config
-$gridWidth = $config['gridWidth'];
-$gridHeight = $config['gridHeight'];
+// Define grid dimensions from centralized config - FIX: use clientConfig instead of config
+$gridWidth = $clientConfig['gridWidth'];
+$gridHeight = $clientConfig['gridHeight'];
+writeLog("Using grid dimensions: width={$gridWidth}, height={$gridHeight}");
 
 /**
  * Add new planned rooms to the game
@@ -45,55 +46,61 @@ function addPlannedRooms($numPlannedRooms) {
     
     // Fetch all occupied locations (constructed or planned rooms)
     $occupiedRooms = $pdo->query("SELECT location_x, location_y FROM rooms")->fetchAll();
+    $occupiedCount = count($occupiedRooms);
+    writeLog("Found {$occupiedCount} occupied room locations");
+    
     $occupiedCoords = array_map(function($room) {
         return ['x' => $room['location_x'], 'y' => $room['location_y']];
     }, $occupiedRooms);
 
-    // Fetch all constructed rooms
-    $constructedRooms = $pdo->query("SELECT location_x, location_y FROM rooms WHERE status = 'constructed'")->fetchAll();
-    $constructedCoords = array_map(function($room) {
-        return ['x' => $room['location_x'], 'y' => $room['location_y']];
-    }, $constructedRooms);
-
     // Precompute valid locations for planned rooms
     $validLocations = [];
+    
+    // First priority: All unoccupied cells in the bottom row are valid
+    $bottomRowY = $gridHeight - 1;
     for ($x = 0; $x < $gridWidth; $x++) {
-        for ($y = 0; $y < $gridHeight; $y++) {
-            // Skip if the location is already occupied
-            $isOccupied = false;
-            foreach ($occupiedCoords as $coord) {
-                if ($coord['x'] === $x && $coord['y'] === $y) {
-                    $isOccupied = true;
-                    break;
+        $isOccupied = false;
+        foreach ($occupiedCoords as $coord) {
+            if ($coord['x'] === $x && $coord['y'] === $bottomRowY) {
+                $isOccupied = true;
+                break;
+            }
+        }
+        if (!$isOccupied) {
+            $validLocations[] = ['x' => $x, 'y' => $bottomRowY];
+        }
+    }
+    
+    // Second priority: locations adjacent to constructed rooms
+    if (!empty($occupiedCoords)) {
+        $constructedRooms = $pdo->query("SELECT location_x, location_y FROM rooms WHERE status = 'constructed'")->fetchAll();
+        $constructedCoords = array_map(function($room) {
+            return ['x' => $room['location_x'], 'y' => $room['location_y']];
+        }, $constructedRooms);
+        
+        // Check all grid positions
+        for ($x = 0; $x < $gridWidth; $x++) {
+            for ($y = 0; $y < $gridHeight; $y++) {
+                // Skip bottom row (already processed) and occupied cells
+                if ($y === $bottomRowY || isLocationOccupied($x, $y, $occupiedCoords)) {
+                    continue;
                 }
-            }
-            if ($isOccupied) {
-                continue;
-            }
-
-            // Allow placement in the bottom row
-            if ($y === $gridHeight - 1) {
-                $validLocations[] = ['x' => $x, 'y' => $y];
-                continue;
-            }
-
-            // Allow placement adjacent to any constructed room
-            $isAdjacent = false;
-            foreach ($constructedCoords as $coord) {
-                if (abs($coord['x'] - $x) <= 1 && abs($coord['y'] - $y) <= 1) {
-                    $isAdjacent = true;
-                    break;
+                
+                // Check if adjacent to any constructed room
+                if (isAdjacentToConstructed($x, $y, $constructedCoords)) {
+                    $validLocations[] = ['x' => $x, 'y' => $y];
                 }
-            }
-            if ($isAdjacent) {
-                $validLocations[] = ['x' => $x, 'y' => $y];
             }
         }
     }
-
+    
+    $validCount = count($validLocations);
+    writeLog("Found {$validCount} valid locations for planned rooms");
+    
     // Randomly select valid locations for planned rooms
     shuffle($validLocations);
     $sectorTypes = ['housing', 'entertainment', 'weapons', 'food', 'technical'];
+    
     foreach (array_slice($validLocations, 0, $numPlannedRooms) as $location) {
         $sectorType = $sectorTypes[array_rand($sectorTypes)];
         $insertStmt = $pdo->prepare("
@@ -102,16 +109,55 @@ function addPlannedRooms($numPlannedRooms) {
             VALUES 
             (:sector_type, :location_x, :location_y, 1.0, 'planned', :created_datetime)
         ");
-        $insertStmt->execute([
-            'sector_type' => $sectorType,
-            'location_x' => $location['x'],
-            'location_y' => $location['y'],
-            'created_datetime' => $currentUtcDateTime
-        ]);
-        $addedRooms++;
+        try {
+            $insertStmt->execute([
+                'sector_type' => $sectorType,
+                'location_x' => $location['x'],
+                'location_y' => $location['y'],
+                'created_datetime' => $currentUtcDateTime
+            ]);
+            $addedRooms++;
+            writeLog("Added planned {$sectorType} room at x={$location['x']}, y={$location['y']}");
+        } catch (PDOException $e) {
+            writeLog("Error adding planned room: " . $e->getMessage());
+        }
     }
 
     return $addedRooms;
+}
+
+/**
+ * Check if a location is already occupied
+ * 
+ * @param int $x X coordinate
+ * @param int $y Y coordinate
+ * @param array $occupiedCoords Array of occupied coordinates
+ * @return bool True if occupied, false otherwise
+ */
+function isLocationOccupied($x, $y, $occupiedCoords) {
+    foreach ($occupiedCoords as $coord) {
+        if ($coord['x'] === $x && $coord['y'] === $y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Check if a location is adjacent to a constructed room
+ * 
+ * @param int $x X coordinate
+ * @param int $y Y coordinate
+ * @param array $constructedCoords Array of constructed room coordinates
+ * @return bool True if adjacent, false otherwise
+ */
+function isAdjacentToConstructed($x, $y, $constructedCoords) {
+    foreach ($constructedCoords as $coord) {
+        if (abs($coord['x'] - $x) <= 1 && abs($coord['y'] - $y) <= 1) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function cacheGameData() {
@@ -199,9 +245,7 @@ try {
     // Add new planned rooms
     $numPlannedRooms = 5; // Configurable number of planned rooms
     $plannedRoomsAdded = addPlannedRooms($numPlannedRooms);
-
-    // Log the number of planned rooms added (fixed variable name)
-    writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}");
+    writeLog("Added {$plannedRoomsAdded} planned rooms");
 
     // Cache game data
     cacheGameData();
@@ -210,7 +254,7 @@ try {
     $roomCountStmt = $pdo->query("SELECT COUNT(*) as total_rooms FROM rooms");
     $totalRooms = $roomCountStmt->fetch()['total_rooms'];
 
-    // Log success.
+    // Log success with correct variable order
     writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}");
     writeLog("Last update time set to: {$currentUtcDateTime} UTC");
     echo json_encode([

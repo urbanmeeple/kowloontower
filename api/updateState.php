@@ -44,75 +44,70 @@ function addPlannedRooms($numPlannedRooms) {
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
     
     // Fetch all constructed rooms
-    $constructedRooms = $pdo->query("
-        SELECT location_x, location_y 
-        FROM rooms 
-        WHERE status = 'constructed'
-    ")->fetchAll();
-
-    // If no constructed rooms exist, only allow placement in the lowest row
+    $constructedRooms = $pdo->query("SELECT location_x, location_y FROM rooms WHERE status = 'constructed'")->fetchAll();
     $constructedCoords = array_map(function($room) {
         return ['x' => $room['location_x'], 'y' => $room['location_y']];
     }, $constructedRooms);
 
-    // Define possible sector types
-    $sectorTypes = ['housing', 'entertainment', 'weapons', 'food', 'technical'];
+    // Fetch all occupied locations
+    $occupiedRooms = $pdo->query("SELECT location_x, location_y FROM rooms")->fetchAll();
+    $occupiedCoords = array_map(function($room) {
+        return ['x' => $room['location_x'], 'y' => $room['location_y']];
+    }, $occupiedRooms);
 
-    // Ensure no infinite loops in planned room generation
-    $maxAttempts = 100; // Limit attempts to prevent infinite loops
-    $attempts = 0;
-    while ($addedRooms < $numPlannedRooms && $attempts < $maxAttempts) {
-        $attempts++;
-        // Randomly select a location using centralized grid dimensions
-        $x = rand(0, $gridWidth - 1);
-        $y = rand(0, $gridHeight - 1);
-
-        $isAdjacent = false;
-
-        // Check adjacency to constructed rooms
-        foreach ($constructedCoords as $coord) {
-            if (abs($coord['x'] - $x) <= 1 && abs($coord['y'] - $y) <= 1) {
-                $isAdjacent = true;
-                break;
+    // Precompute valid locations for planned rooms
+    $validLocations = [];
+    for ($x = 0; $x < $gridWidth; $x++) {
+        for ($y = 0; $y < $gridHeight; $y++) {
+            $isOccupied = false;
+            foreach ($occupiedCoords as $coord) {
+                if ($coord['x'] === $x && $coord['y'] === $y) {
+                    $isOccupied = true;
+                    break;
+                }
             }
-        }
+            if ($isOccupied) {
+                continue;
+            }
 
-        // Allow placement in the lowest row based on centralized grid height
-        if ($y === ($gridHeight - 1) || $isAdjacent) {
-            // Check if the location is already occupied
-            $stmt = $pdo->prepare("
-                SELECT COUNT(*) as count 
-                FROM rooms 
-                WHERE location_x = :x AND location_y = :y
-            ");
-            $stmt->execute(['x' => $x, 'y' => $y]);
-            $isOccupied = $stmt->fetch()['count'] > 0;
+            // Allow placement in the bottom row
+            if ($y === $gridHeight - 1) {
+                $validLocations[] = ['x' => $x, 'y' => $y];
+                continue;
+            }
 
-            if (!$isOccupied) {
-                // Assign a random sector type
-                $sectorType = $sectorTypes[array_rand($sectorTypes)];
-
-                // Insert the planned room
-                $insertStmt = $pdo->prepare("
-                    INSERT INTO rooms 
-                    (sector_type, location_x, location_y, maintenance_level, status, created_datetime) 
-                    VALUES 
-                    (:sector_type, :location_x, :location_y, 1.0, 'planned', :created_datetime)
-                ");
-                $insertStmt->execute([
-                    'sector_type' => $sectorType,
-                    'location_x' => $x,
-                    'location_y' => $y,
-                    'created_datetime' => $currentUtcDateTime
-                ]);
-
-                $addedRooms++;
+            // Allow placement adjacent to any constructed room
+            $isAdjacent = false;
+            foreach ($constructedCoords as $coord) {
+                if (abs($coord['x'] - $x) <= 1 && abs($coord['y'] - $y) <= 1) {
+                    $isAdjacent = true;
+                    break;
+                }
+            }
+            if ($isAdjacent) {
+                $validLocations[] = ['x' => $x, 'y' => $y];
             }
         }
     }
 
-    if ($attempts >= $maxAttempts) {
-        writeLog("Reached maximum attempts while adding planned rooms.");
+    // Randomly select valid locations for planned rooms
+    shuffle($validLocations);
+    $sectorTypes = ['housing', 'entertainment', 'weapons', 'food', 'technical'];
+    foreach (array_slice($validLocations, 0, $numPlannedRooms) as $location) {
+        $sectorType = $sectorTypes[array_rand($sectorTypes)];
+        $insertStmt = $pdo->prepare("
+            INSERT INTO rooms 
+            (sector_type, location_x, location_y, maintenance_level, status, created_datetime) 
+            VALUES 
+            (:sector_type, :location_x, :location_y, 1.0, 'planned', :created_datetime)
+        ");
+        $insertStmt->execute([
+            'sector_type' => $sectorType,
+            'location_x' => $location['x'],
+            'location_y' => $location['y'],
+            'created_datetime' => $currentUtcDateTime
+        ]);
+        $addedRooms++;
     }
 
     return $addedRooms;
@@ -204,8 +199,8 @@ try {
     $numPlannedRooms = 5; // Configurable number of planned rooms
     $plannedRoomsAdded = addPlannedRooms($numPlannedRooms);
 
-    // Log the number of planned rooms added
-    writeLog("Added {$plannedRoomsAdded} planned rooms.");
+    // Log the number of planned rooms added (fixed variable name)
+    writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}");
 
     // Cache game data
     cacheGameData();
@@ -215,11 +210,11 @@ try {
     $totalRooms = $roomCountStmt->fetch()['total_rooms'];
 
     // Log success.
-    writeLog("Game state updated successfully. {$roomsCreated} new rooms created. Total room count: {$totalRooms}");
+    writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}");
     writeLog("Last update time set to: {$currentUtcDateTime} UTC");
     echo json_encode([
         'success' => true, 
-        'roomsCreated' => $roomsCreated,
+        'roomsCreated' => $plannedRoomsAdded,
         'totalRooms' => $totalRooms,
         'lastUpdateTime' => $currentUtcDateTime
     ]);

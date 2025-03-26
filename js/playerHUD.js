@@ -124,6 +124,8 @@ class PlayerHUD {
     const elapsedTime = now - lastCacheTimestamp; // Time elapsed since last cache creation
     this.remainingTime = Math.max(cronJobInterval - elapsedTime, 0); // Calculate remaining time
 
+    console.log(`Timer reset: Cache timestamp=${lastCacheTimestamp}, Now=${now}, Elapsed=${elapsedTime}, Remaining=${this.remainingTime}`);
+
     // Update the timer display immediately
     this.updateTimerDisplay();
 

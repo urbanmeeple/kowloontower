@@ -26,6 +26,10 @@ export async function fetchUpdatedGameState() {
     if (timestamp) {
       console.log("Storing cache timestamp:", timestamp);
       localStorage.setItem(config.player.cacheTimestampKey, timestamp.toString());
+      
+      // Reset the timer with the new timestamp and interval from config
+      playerHUD.resetTimer(timestamp, config.cronJobInterval);
+      console.log(`Timer reset with timestamp ${timestamp} and interval ${config.cronJobInterval}s`);
     }
 
     console.log("Game state successfully updated from cache.");
@@ -144,10 +148,17 @@ async function checkAndFetchCache() {
     // Compare timestamps and update if needed
     if (data.lastCacheUpdate && data.lastCacheUpdate > lastKnownTimestamp) {
       console.log("Cache is newer than last known version. Fetching updates...");
-      localStorage.setItem(config.player.cacheTimestampKey, data.lastCacheUpdate);
+      localStorage.setItem(config.player.cacheTimestampKey, data.lastCacheUpdate.toString());
       await fetchUpdatedGameState();
+      
+      // Reset the timer with the new timestamp and interval (already done in fetchUpdatedGameState)
     } else {
       console.log("Cache is current, no update needed");
+      
+      // Even if cache hasn't changed, make sure timer is running with current timestamp
+      if (data.lastCacheUpdate) {
+        playerHUD.resetTimer(data.lastCacheUpdate, config.cronJobInterval);
+      }
     }
   } catch (error) {
     console.error("Error checking cache status:", error);

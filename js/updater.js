@@ -1,5 +1,5 @@
 import { config } from './config.js.php';
-import { renderGame } from './render.js';
+import { renderGame, resetBrightnessCycle } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
 import { getPlayerState } from './player.js';
@@ -29,6 +29,10 @@ export async function fetchUpdatedGameState() {
       
       // Reset the timer with the new timestamp and interval from config
       playerHUD.resetTimer(timestamp, config.cronJobInterval);
+      
+      // Reset the brightness cycle to sync with the cron job
+      resetBrightnessCycle();
+      
       console.log(`Timer reset with timestamp ${timestamp} and interval ${config.cronJobInterval}s`);
     }
 
@@ -151,7 +155,7 @@ async function checkAndFetchCache() {
       localStorage.setItem(config.player.cacheTimestampKey, data.lastCacheUpdate.toString());
       await fetchUpdatedGameState();
       
-      // Reset the timer with the new timestamp and interval (already done in fetchUpdatedGameState)
+      // Reset has already been done in fetchUpdatedGameState
     } else {
       console.log("Cache is current, no update needed");
       

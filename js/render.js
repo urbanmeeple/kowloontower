@@ -10,12 +10,26 @@ const GRID_BOTTOM_EXTRA_CELLS = 100;  // Extra bottom cells for gameView height
 export let gameTwo, backgroundTwo;
 export let verticalPan = -400; // starting vertical offset
 
+// Brightness cycle tracking variables
+let brightnessCycleStartTime = Date.now(); // When the cycle started
+let isCycleActive = true; // Whether we're in an active cycle or keeping minimum brightness
+
 // NEW: Export getter and setter for verticalPan.
 export function getVerticalPan() {
     return verticalPan;
 }
 export function setVerticalPan(newPan) {
     verticalPan = newPan;
+}
+
+/**
+ * Resets the brightness cycle to sync with a new cache update
+ * This should be called whenever the cron job updates the game state
+ */
+export function resetBrightnessCycle() {
+    brightnessCycleStartTime = Date.now();
+    isCycleActive = true;
+    console.log("Brightness cycle reset at:", new Date().toISOString());
 }
 
 export function initRender(canvas, backgroundContainer) {
@@ -30,6 +44,9 @@ export function initRender(canvas, backgroundContainer) {
     // NEW: Set verticalPan so that the grid's base is at the bottom of the screen.
     const towerBottom = GRID_TOP_PADDING_CELLS * config.cellSize + config.gridHeight * config.cellSize;
     verticalPan = gameTwo.height - towerBottom - config.cellSize;
+    
+    // Initialize the brightness cycle
+    resetBrightnessCycle();
     
     updateGridOffset(gameTwo);
   } catch (error) {
@@ -201,14 +218,36 @@ export function screenToGrid(screenX, screenY) {
 
 export function animateBackground() {
   try {
-    let animationPhase = 0;
     function loop() {
       try {
-        animationPhase += 0.0005;
-        // Define constants for brightness range.
-        const BRIGHTNESS_MIN = 0.7;
-        const BRIGHTNESS_CHANGE_FACTOR = 0.15; // determines the amplitude
-        config.colors.background.brightness = BRIGHTNESS_MIN + (Math.sin(animationPhase) + 1) * (BRIGHTNESS_CHANGE_FACTOR);
+        // Define constants for brightness range
+        const BRIGHTNESS_MIN = 0.5;  // Minimum brightness (night)
+        const BRIGHTNESS_MAX = 1.0;  // Maximum brightness (day)
+        const BRIGHTNESS_RANGE = BRIGHTNESS_MAX - BRIGHTNESS_MIN;
+        
+        let brightness = BRIGHTNESS_MIN; // Default to minimum if cycle not active
+        
+        if (isCycleActive) {
+          // Calculate how far we are into the cycle (0.0 to 1.0)
+          const now = Date.now();
+          const elapsedMs = now - brightnessCycleStartTime;
+          const cycleMs = config.cronJobInterval * 1000; // Convert seconds to milliseconds
+          const cycleProgress = Math.min(elapsedMs / cycleMs, 1.0); // Cap at 1.0
+          
+          if (cycleProgress >= 1.0) {
+            // We've completed a cycle, stay at minimum brightness
+            isCycleActive = false;
+            brightness = BRIGHTNESS_MIN;
+          } else if (cycleProgress < 0.5) {
+            // First half: increase from min to max (dawn to noon)
+            brightness = BRIGHTNESS_MIN + (cycleProgress * 2 * BRIGHTNESS_RANGE);
+          } else {
+            // Second half: decrease from max to min (noon to dusk)
+            brightness = BRIGHTNESS_MAX - ((cycleProgress - 0.5) * 2 * BRIGHTNESS_RANGE);
+          }
+        }
+        
+        config.colors.background.brightness = brightness;
         renderBackground();
         requestAnimationFrame(loop);
       } catch (innerError) {

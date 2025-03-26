@@ -27,13 +27,18 @@ export async function fetchUpdatedGameState() {
       console.log("Storing cache timestamp:", timestamp);
       localStorage.setItem(config.player.cacheTimestampKey, timestamp.toString());
       
+      // Calculate remaining time for reset
+      const now = Math.floor(Date.now() / 1000);
+      const elapsedTime = now - timestamp;
+      const remainingTime = Math.max(config.cronJobInterval - elapsedTime, 0);
+      
       // Reset the timer with the new timestamp and interval from config
       playerHUD.resetTimer(timestamp, config.cronJobInterval);
       
-      // Reset the brightness cycle to sync with the cron job
-      resetBrightnessCycle();
+      // Reset the brightness cycle to sync with the cron job and timer
+      resetBrightnessCycle(remainingTime, config.cronJobInterval);
       
-      console.log(`Timer reset with timestamp ${timestamp} and interval ${config.cronJobInterval}s`);
+      console.log(`Timer reset with timestamp ${timestamp} and interval ${config.cronJobInterval}s, ${remainingTime}s remaining`);
     }
 
     console.log("Game state successfully updated from cache.");
@@ -161,7 +166,14 @@ async function checkAndFetchCache() {
       
       // Even if cache hasn't changed, make sure timer is running with current timestamp
       if (data.lastCacheUpdate) {
+        // Calculate remaining time for the current cycle
+        const now = Math.floor(Date.now() / 1000);
+        const elapsedTime = now - data.lastCacheUpdate;
+        const remainingTime = Math.max(config.cronJobInterval - elapsedTime, 0);
+        
+        // Reset both timer and brightness with same values
         playerHUD.resetTimer(data.lastCacheUpdate, config.cronJobInterval);
+        resetBrightnessCycle(remainingTime, config.cronJobInterval);
       }
     }
   } catch (error) {

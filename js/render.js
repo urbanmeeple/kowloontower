@@ -25,11 +25,28 @@ export function setVerticalPan(newPan) {
 /**
  * Resets the brightness cycle to sync with a new cache update
  * This should be called whenever the cron job updates the game state
+ * @param {number} [remainingTime] - Optional remaining time in seconds until next cron job
+ * @param {number} [cronJobInterval] - Optional total interval length in seconds
  */
-export function resetBrightnessCycle() {
-    brightnessCycleStartTime = Date.now();
+export function resetBrightnessCycle(remainingTime, cronJobInterval) {
+    // If we have timing information, sync with timer
+    if (remainingTime !== undefined && cronJobInterval !== undefined) {
+        // Calculate elapsed time in the cycle
+        const elapsedTime = cronJobInterval - remainingTime;
+        
+        // Set brightnessCycleStartTime to a time in the past that would place us
+        // at the correct point in the cycle
+        const elapsedMs = elapsedTime * 1000; // Convert seconds to milliseconds
+        brightnessCycleStartTime = Date.now() - elapsedMs;
+        
+        console.log(`Brightness cycle synchronized: ${elapsedTime}s elapsed, ${remainingTime}s remaining in ${cronJobInterval}s cycle`);
+    } else {
+        // No timing information provided, just reset to beginning
+        brightnessCycleStartTime = Date.now();
+        console.log("Brightness cycle reset to beginning");
+    }
+    
     isCycleActive = true;
-    console.log("Brightness cycle reset at:", new Date().toISOString());
 }
 
 export function initRender(canvas, backgroundContainer) {
@@ -45,9 +62,7 @@ export function initRender(canvas, backgroundContainer) {
     const towerBottom = GRID_TOP_PADDING_CELLS * config.cellSize + config.gridHeight * config.cellSize;
     verticalPan = gameTwo.height - towerBottom - config.cellSize;
     
-    // Initialize the brightness cycle
-    resetBrightnessCycle();
-    
+    // We'll initialize the brightness cycle in updater.js after timer is initialized
     updateGridOffset(gameTwo);
   } catch (error) {
     console.error("Error during initRender:", error);

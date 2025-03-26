@@ -48,6 +48,7 @@ $clientConfig = [
         'welcomeMessageDuration' => 5000,
         'storageKey'             => 'kowloonTowerPlayerID',
         'usernameKey'            => 'kowloonTowerUsername', // Key for storing username in localStorage
+        'cacheTimestampKey'      => 'kowloonTowerCacheTimestamp' // Key for storing cache timestamp in localStorage
     ],
     'sectorIcons'         => [
         'housing' => '🏠',

@@ -4,10 +4,6 @@ import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
 import { getPlayerState } from './player.js';
 
-// Track the last known timestamp of the cache file
-// Using localStorage to persist between page reloads
-const CACHE_TIMESTAMP_KEY = 'kowloonTowerCacheTimestamp';
-
 /**
  * Fetch updated game state from the server.
  * @returns {Promise<boolean>} True if successful, false otherwise
@@ -24,12 +20,38 @@ export async function fetchUpdatedGameState() {
 
     // Update the game and HUD after the local game state is updated
     updateGameAndHUD();
+    
+    // Store the timestamp of when the file cache was created when we successfully updated
+    localStorage.setItem(config.player.cacheTimestampKey, getCacheLastUpdate());
 
     console.log("Game state successfully updated from cache.");
     return true;
   } catch (error) {
     console.error("Error in fetchUpdatedGameState:", error);
     return false;
+  }
+}
+
+/**
+ * Fetch the last cache update timestamp from the server.
+ * @returns {Promise<number|null>} The last cache update timestamp or null if an error occurs.
+ */
+export async function getCacheLastUpdate() {
+  try {
+    const response = await fetch('api/getCacheStatus.php');
+    if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
+    const data = await response.json();
+
+    if (data.lastCacheUpdate) {
+      console.log("Cache last update timestamp fetched:", data.lastCacheUpdate);
+      return data.lastCacheUpdate;
+    } else {
+      console.error("Cache status response missing 'lastCacheUpdate'.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching cache status:", error);
+    return null;
   }
 }
 
@@ -75,11 +97,6 @@ export function updateGameAndHUD() {
     renderGame(gameState.rooms);
     
     console.log(`Game rendered with ${gameState.rooms ? gameState.rooms.length : 0} rooms`);
-    
-    // Store the current timestamp when we successfully updated
-    if (gameState.lastUpdate) {
-      localStorage.setItem(CACHE_TIMESTAMP_KEY, gameState.lastUpdate);
-    }
   } catch (error) {
     console.error("Error in updateGameAndHUD:", error);
   }
@@ -111,7 +128,7 @@ export async function startAutoUpdates() {
 async function checkAndFetchCache() {
   try {
     // Get the last known timestamp
-    const lastKnownTimestamp = parseInt(localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0');
+    const lastKnownTimestamp = parseInt(localStorage.getItem(config.player.cacheTimestampKey) || '0');
     
     // Fetch current cache file timestamp
     const response = await fetch('api/getCacheStatus.php');
@@ -123,7 +140,7 @@ async function checkAndFetchCache() {
     // Compare timestamps and update if needed
     if (data.lastCacheUpdate && data.lastCacheUpdate > lastKnownTimestamp) {
       console.log("Cache is newer than last known version. Fetching updates...");
-      localStorage.setItem(CACHE_TIMESTAMP_KEY, data.lastCacheUpdate);
+      localStorage.setItem(config.player.cacheTimestampKey, data.lastCacheUpdate);
       await fetchUpdatedGameState();
     } else {
       console.log("Cache is current, no update needed");

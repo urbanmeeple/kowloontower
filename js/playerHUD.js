@@ -157,6 +157,12 @@ class PlayerHUD {
     // Update the timer text
     timerElement.textContent = this.remainingTime;
 
+    // If timer has reached zero, apply blinking animation
+    if (this.remainingTime <= 0) {
+      timerElement.className = 'timer-zero'; // Apply blinking animation
+      return; // Exit early as we don't need to calculate percentages
+    }
+
     // Calculate percentage of time remaining (as a decimal)
     const percentageRemaining = this.remainingTime / this.cronJobInterval;
     
@@ -173,7 +179,10 @@ class PlayerHUD {
       timerElement.className = 'timer-critical'; // Red color and larger (less than 25% left)
     }
     
-    console.log(`Timer update: ${this.remainingTime}s remaining (${Math.round(percentageRemaining * 100)}% of interval)`);
+    // Log only at specific intervals to avoid console spam
+    if (this.remainingTime % 5 === 0 || this.remainingTime <= 10) {
+      console.log(`Timer update: ${this.remainingTime}s remaining (${Math.round(percentageRemaining * 100)}% of interval)`);
+    }
   }
 }
 

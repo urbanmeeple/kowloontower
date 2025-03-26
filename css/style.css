@@ -97,6 +97,20 @@ canvas {
   transition: color 0.3s, font-size 0.3s;
 }
 
+/* New blinking animation for timer at zero */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.timer-zero {
+  color: #F44336; /* Red */
+  font-size: 18px; /* Larger font size */
+  font-weight: bold;
+  animation: blink 1s infinite; /* Apply blinking animation */
+}
+
 /* Responsive adjustments for small screens */
 @media (max-width: 768px) {
   #player-hud {

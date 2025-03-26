@@ -16,6 +16,7 @@ class PlayerHUD {
     // Timer variables
     this.timerInterval = null;
     this.remainingTime = 0; // Remaining time in seconds
+    this.cronJobInterval = 60; // Default value, will be updated in resetTimer
 
     // Create HUD layout
     this.createHUDLayout();
@@ -123,6 +124,7 @@ class PlayerHUD {
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
     const elapsedTime = now - lastCacheTimestamp; // Time elapsed since last cache creation
     this.remainingTime = Math.max(cronJobInterval - elapsedTime, 0); // Calculate remaining time
+    this.cronJobInterval = cronJobInterval; // Store interval for percentage calculations
 
     console.log(`Timer reset: Cache timestamp=${lastCacheTimestamp}, Now=${now}, Elapsed=${elapsedTime}, Remaining=${this.remainingTime}`);
 
@@ -155,17 +157,23 @@ class PlayerHUD {
     // Update the timer text
     timerElement.textContent = this.remainingTime;
 
-    // Apply styling based on the remaining time
-    const halfwayPoint = Math.floor(this.remainingTime / 2);
-    const criticalThreshold = Math.floor(this.remainingTime * 0.2);
+    // Calculate percentage of time remaining (as a decimal)
+    const percentageRemaining = this.remainingTime / this.cronJobInterval;
+    
+    // Define thresholds as percentages
+    const HALFWAY_THRESHOLD = 0.5;  // 50% of cronJobInterval
+    const CRITICAL_THRESHOLD = 0.25; // 25% of cronJobInterval
 
-    if (this.remainingTime > halfwayPoint) {
-      timerElement.className = 'timer-normal'; // Normal styling
-    } else if (this.remainingTime > criticalThreshold) {
-      timerElement.className = 'timer-warning'; // Warning styling
+    // Apply styling based on percentage thresholds
+    if (percentageRemaining > HALFWAY_THRESHOLD) {
+      timerElement.className = 'timer-fresh'; // White color (more than 50% left)
+    } else if (percentageRemaining > CRITICAL_THRESHOLD) {
+      timerElement.className = 'timer-warning'; // Orange color (49-25% left)
     } else {
-      timerElement.className = 'timer-critical'; // Critical styling
+      timerElement.className = 'timer-critical'; // Red color and larger (less than 25% left)
     }
+    
+    console.log(`Timer update: ${this.remainingTime}s remaining (${Math.round(percentageRemaining * 100)}% of interval)`);
   }
 }
 

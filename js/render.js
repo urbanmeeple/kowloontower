@@ -145,7 +145,7 @@ export function renderGame(rooms) {
         gridGroup.add(roomRect);
 
         const sectorType = room.sector_type || 'default';
-        const icon = sectorIcons[sectorType] || sectorIcons.default;
+        const icon = config.sectorIcons[sectorType] || config.sectorIcons.default; // Access sectorIcons from config
         const iconText = new Two.Text(icon, roomX, roomY, {
           size: config.cellSize * 0.8,
           alignment: 'center',
@@ -163,7 +163,7 @@ export function renderGame(rooms) {
         gridGroup.add(plannedRoom);
 
         const sectorType = room.sector_type || 'default';
-        const icon = sectorIcons[sectorType] || sectorIcons.default;
+        const icon = config.sectorIcons[sectorType] || config.sectorIcons.default; // Access sectorIcons from config
         const iconText = new Two.Text(icon, roomX, roomY, {
           size: config.cellSize * 0.8,
           alignment: 'center',

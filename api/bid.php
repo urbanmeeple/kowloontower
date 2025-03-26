@@ -82,7 +82,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['playerID'])) {
         ]);
     }
 }
-// Handle POST request - Create a new bid
+// Handle POST request - Create or update a bid
 else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get JSON data from request body
     $data = json_decode(file_get_contents('php://input'), true);
@@ -103,7 +103,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = intval($data['amount']);
     $playerID = sanitizeInput($data['playerID']);
     
-    writeLog("Creating new {$type} bid for room {$roomID} by player {$playerID} for {$amount}");
+    writeLog("Processing {$type} bid for room {$roomID} by player {$playerID} for {$amount}");
     
     try {
         // Verify player exists
@@ -117,26 +117,6 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode([
                 'success' => false,
                 'error' => 'Player not found'
-            ]);
-            exit;
-        }
-        
-        // Verify player has enough money available
-        // First get total of active bids
-        $activeStmt = $pdo->prepare("SELECT SUM(amount) AS total FROM bids WHERE playerID = :playerID AND status IN ('new', 'active')");
-        $activeStmt->execute(['playerID' => $playerID]);
-        $activeBids = $activeStmt->fetch();
-        $activeBidsTotal = $activeBids['total'] ?: 0;
-        
-        // Check if player has enough available money
-        $availableMoney = $player['money'] - $activeBidsTotal;
-        
-        if ($amount > $availableMoney) {
-            writeLog("Insufficient funds: player has {$availableMoney} available, bid is {$amount}");
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Insufficient funds'
             ]);
             exit;
         }
@@ -156,62 +136,62 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        // Check if bid type matches room status
-        if ($type === 'construct' && $room['status'] !== 'planned') {
-            writeLog("Invalid bid type: cannot construct non-planned room");
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Cannot place construction bid on a constructed room'
+        // Check if the player already has a bid for this room
+        $existingBidStmt = $pdo->prepare("SELECT * FROM bids WHERE playerID = :playerID AND roomID = :roomID");
+        $existingBidStmt->execute(['playerID' => $playerID, 'roomID' => $roomID]);
+        $existingBid = $existingBidStmt->fetch();
+        
+        if ($existingBid) {
+            // Update the existing bid
+            $updateStmt = $pdo->prepare("UPDATE bids SET amount = :amount, placed_datetime = :placed_datetime WHERE bidID = :bidID");
+            $updateStmt->execute([
+                'amount' => $amount,
+                'placed_datetime' => gmdate('Y-m-d H:i:s'),
+                'bidID' => $existingBid['bidID']
             ]);
-            exit;
-        }
-        
-        if ($type === 'buy' && $room['status'] !== 'constructed') {
-            writeLog("Invalid bid type: cannot buy planned room");
-            http_response_code(400);
+            writeLog("Updated bid ID {$existingBid['bidID']} for room {$roomID} by player {$playerID}");
             echo json_encode([
-                'success' => false,
-                'error' => 'Cannot place buy bid on a planned room'
+                'success' => true,
+                'bid' => [
+                    'bidID' => $existingBid['bidID'],
+                    'type' => $type,
+                    'roomID' => $roomID,
+                    'amount' => $amount,
+                    'placed_datetime' => gmdate('Y-m-d H:i:s'),
+                    'status' => 'new'
+                ]
             ]);
-            exit;
-        }
-        
-        // Get current UTC datetime
-        $currentUtcDateTime = gmdate('Y-m-d H:i:s');
-        
-        // Insert the new bid with status 'new'
-        $insertStmt = $pdo->prepare("
-            INSERT INTO bids 
-            (type, roomID, amount, playerID, placed_datetime, status) 
-            VALUES 
-            (:type, :roomID, :amount, :playerID, :placed_datetime, 'new')
-        ");
-        
-        $insertStmt->execute([
-            'type' => $type,
-            'roomID' => $roomID,
-            'amount' => $amount,
-            'playerID' => $playerID,
-            'placed_datetime' => $currentUtcDateTime
-        ]);
-        
-        $bidID = $pdo->lastInsertId();
-        writeLog("Bid created with ID: $bidID");
-        
-        echo json_encode([
-            'success' => true,
-            'bid' => [
-                'bidID' => $bidID,
+        } else {
+            // Insert a new bid
+            $insertStmt = $pdo->prepare("
+                INSERT INTO bids 
+                (type, roomID, amount, playerID, placed_datetime, status) 
+                VALUES 
+                (:type, :roomID, :amount, :playerID, :placed_datetime, 'new')
+            ");
+            $insertStmt->execute([
                 'type' => $type,
                 'roomID' => $roomID,
                 'amount' => $amount,
-                'placed_datetime' => $currentUtcDateTime,
-                'status' => 'new'
-            ]
-        ]);
+                'playerID' => $playerID,
+                'placed_datetime' => gmdate('Y-m-d H:i:s')
+            ]);
+            $bidID = $pdo->lastInsertId();
+            writeLog("Created new bid ID {$bidID} for room {$roomID} by player {$playerID}");
+            echo json_encode([
+                'success' => true,
+                'bid' => [
+                    'bidID' => $bidID,
+                    'type' => $type,
+                    'roomID' => $roomID,
+                    'amount' => $amount,
+                    'placed_datetime' => gmdate('Y-m-d H:i:s'),
+                    'status' => 'new'
+                ]
+            ]);
+        }
     } catch (Exception $e) {
-        writeLog("Database error when creating bid: " . $e->getMessage());
+        writeLog("Database error when processing bid: " . $e->getMessage());
         http_response_code(500);
         echo json_encode([
             'success' => false,

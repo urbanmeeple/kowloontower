@@ -20,16 +20,16 @@ class RoomPopup {
             transform: 'translate(-50%, -50%)',
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
             color: 'white',
-            padding: '20px',
-            borderRadius: '8px',
+            padding: '12px', // Reduced padding
+            borderRadius: '5px', // Reduced border radius
             zIndex: '1001',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.5)',
-            maxWidth: '80%',
-            maxHeight: '80%',
+            boxShadow: '0 3px 6px rgba(0, 0, 0, 0.5)', // Reduced shadow
+            maxWidth: '60%', // Reduced width
+            maxHeight: '60%', // Reduced height
             overflow: 'auto',
             textAlign: 'center',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '16px',
+            fontSize: '12px', // Reduced font size
             border: '1px solid #444',
         });
 
@@ -38,15 +38,15 @@ class RoomPopup {
         this.closeButton.textContent = 'Close';
         Object.assign(this.closeButton.style, {
             position: 'absolute',
-            top: '10px',
-            right: '10px',
+            top: '8px', // Reduced spacing
+            right: '8px', // Reduced spacing
             backgroundColor: '#666',
             color: 'white',
             border: 'none',
-            padding: '5px 10px',
-            borderRadius: '5px',
+            padding: '4px 8px', // Reduced padding
+            borderRadius: '4px', // Reduced border radius
             cursor: 'pointer',
-            fontSize: '14px'
+            fontSize: '10px' // Reduced font size
         });
         this.closeButton.addEventListener('click', () => this.hide());
         this.popupContainer.appendChild(this.closeButton);
@@ -178,12 +178,12 @@ class RoomPopup {
         buttonContainer.style.marginTop = '15px';
         
         // Create bid button
-        const bidButton = document.createElement('button');
         
         // Use different text formatting for "Bid" and "to construct/buy"
         const buttonText = isChangingBid ? 'Change bid' : (type === 'construct' ? 'Bid' : 'Bid');
         const secondaryText = type === 'construct' ? ' to construct' : ' to buy';
         
+        const bidButton = document.createElement('button');
         bidButton.innerHTML = isChangingBid 
             ? 'Change bid' 
             : `<span style="font-size: 1.2em; font-weight: bold;">${buttonText}</span><span style="font-size: 0.8em">${secondaryText}</span>`;

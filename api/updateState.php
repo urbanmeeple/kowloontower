@@ -43,22 +43,23 @@ function addPlannedRooms($numPlannedRooms) {
     $addedRooms = 0;
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
     
+    // Fetch all occupied locations (constructed or planned rooms)
+    $occupiedRooms = $pdo->query("SELECT location_x, location_y FROM rooms")->fetchAll();
+    $occupiedCoords = array_map(function($room) {
+        return ['x' => $room['location_x'], 'y' => $room['location_y']];
+    }, $occupiedRooms);
+
     // Fetch all constructed rooms
     $constructedRooms = $pdo->query("SELECT location_x, location_y FROM rooms WHERE status = 'constructed'")->fetchAll();
     $constructedCoords = array_map(function($room) {
         return ['x' => $room['location_x'], 'y' => $room['location_y']];
     }, $constructedRooms);
 
-    // Fetch all occupied locations
-    $occupiedRooms = $pdo->query("SELECT location_x, location_y FROM rooms")->fetchAll();
-    $occupiedCoords = array_map(function($room) {
-        return ['x' => $room['location_x'], 'y' => $room['location_y']];
-    }, $occupiedRooms);
-
     // Precompute valid locations for planned rooms
     $validLocations = [];
     for ($x = 0; $x < $gridWidth; $x++) {
         for ($y = 0; $y < $gridHeight; $y++) {
+            // Skip if the location is already occupied
             $isOccupied = false;
             foreach ($occupiedCoords as $coord) {
                 if ($coord['x'] === $x && $coord['y'] === $y) {

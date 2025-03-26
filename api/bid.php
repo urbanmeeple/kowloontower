@@ -17,8 +17,47 @@ function sanitizeInput($data) {
     return htmlspecialchars(strip_tags(trim($data)));
 }
 
+// Handle DELETE request - Remove a bid by ID
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE' && isset($_GET['bidID'])) {
+    $bidID = intval($_GET['bidID']);
+    writeLog("Attempting to remove bid with ID: $bidID");
+    
+    try {
+        // First check if the bid exists
+        $checkStmt = $pdo->prepare("SELECT * FROM bids WHERE bidID = :bidID");
+        $checkStmt->execute(['bidID' => $bidID]);
+        $bid = $checkStmt->fetch();
+        
+        if (!$bid) {
+            writeLog("Bid not found: $bidID");
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Bid not found'
+            ]);
+            exit;
+        }
+        
+        // Delete the bid
+        $deleteStmt = $pdo->prepare("DELETE FROM bids WHERE bidID = :bidID");
+        $deleteStmt->execute(['bidID' => $bidID]);
+        
+        writeLog("Bid {$bidID} successfully removed");
+        echo json_encode([
+            'success' => true,
+            'message' => 'Bid removed successfully'
+        ]);
+    } catch (Exception $e) {
+        writeLog("Database error when removing bid: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+}
 // Handle GET request - Fetch bids by player ID
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['playerID'])) {
+else if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['playerID'])) {
     $playerID = sanitizeInput($_GET['playerID']);
     writeLog("Fetching bids for player ID: $playerID");
     

@@ -1,4 +1,4 @@
-import { getPlayerState, placeBid, getAvailableMoney } from './player.js';
+import { getPlayerState, placeBid, getAvailableMoney, removeBid } from './player.js';
 
 class RoomPopup {
     constructor() {
@@ -135,8 +135,8 @@ class RoomPopup {
         // Maximum bid amount (available money)
         const maxBidAmount = totalAvailableMoney;
         
-        // Set initial bid amount to existing bid or minimum
-        let bidAmount = isChangingBid ? existingBid.amount : minBidAmount;
+        // Set initial bid amount to existing bid or 0
+        let bidAmount = isChangingBid ? existingBid.amount : 0;
 
         // Slider container
         const sliderContainer = document.createElement('div');
@@ -146,21 +146,21 @@ class RoomPopup {
         // Create slider for bid amount
         const slider = document.createElement('input');
         slider.type = 'range';
-        slider.min = minBidAmount;
+        slider.min = 0; // Always start at 0
         slider.max = maxBidAmount;
         slider.value = bidAmount;
         slider.step = 1000; // Increment in thousands
         Object.assign(slider.style, {
-            width: '80%', // Make slider shorter (was 100%)
+            width: '60%', // Make slider even shorter (was 80%)
             margin: '10px 0'
         });
         sliderContainer.appendChild(slider);
 
-        // Display for current bid amount
+        // Display for current bid amount (smaller font)
         const bidAmountDisplay = document.createElement('div');
         bidAmountDisplay.textContent = this.formatMoney(bidAmount);
         bidAmountDisplay.style.fontWeight = 'bold';
-        bidAmountDisplay.style.fontSize = '18px';
+        bidAmountDisplay.style.fontSize = '16px'; // Smaller font (was 18px)
         bidAmountDisplay.style.margin = '10px 0';
         sliderContainer.appendChild(bidAmountDisplay);
 
@@ -170,6 +170,13 @@ class RoomPopup {
             bidAmountDisplay.textContent = this.formatMoney(bidAmount);
         });
 
+        // Create button container for side-by-side buttons when there's an existing bid
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.justifyContent = 'center';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.marginTop = '15px';
+        
         // Create bid button
         const bidButton = document.createElement('button');
         
@@ -189,12 +196,26 @@ class RoomPopup {
             borderRadius: '5px',
             cursor: 'pointer',
             fontSize: '16px',
-            fontWeight: 'bold',
-            marginTop: '10px'
+            fontWeight: 'bold'
         });
 
         // Handle bid button click
         bidButton.addEventListener('click', async () => {
+            // Check if bid amount meets minimum requirements
+            if (bidAmount < minBidAmount) {
+                const errorMsg = document.createElement('p');
+                errorMsg.textContent = `Bid must be at least ${this.formatMoney(minBidAmount)}`;
+                errorMsg.style.color = '#F44336'; // Red
+                
+                // Remove any existing error messages
+                const existingError = bidContainer.querySelector('.error-message');
+                if (existingError) bidContainer.removeChild(existingError);
+                
+                errorMsg.className = 'error-message';
+                bidContainer.appendChild(errorMsg);
+                return;
+            }
+            
             // Disable button to prevent multiple clicks
             bidButton.disabled = true;
             bidButton.textContent = 'Processing...';
@@ -223,9 +244,69 @@ class RoomPopup {
                 const errorMsg = document.createElement('p');
                 errorMsg.textContent = 'Failed to place bid. Please try again.';
                 errorMsg.style.color = '#F44336'; // Red
+                
+                // Remove any existing error messages
+                const existingError = bidContainer.querySelector('.error-message');
+                if (existingError) bidContainer.removeChild(existingError);
+                
+                errorMsg.className = 'error-message';
                 bidContainer.appendChild(errorMsg);
             }
         });
+
+        // Add remove bid button if there's an existing bid
+        if (isChangingBid) {
+            const removeBidButton = document.createElement('button');
+            removeBidButton.textContent = 'Remove Bid';
+            Object.assign(removeBidButton.style, {
+                backgroundColor: '#F44336', // Red color for removal
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold'
+            });
+
+            // Handle remove bid click
+            removeBidButton.addEventListener('click', async () => {
+                // Disable button to prevent multiple clicks
+                removeBidButton.disabled = true;
+                removeBidButton.textContent = 'Removing...';
+                
+                const success = await removeBid(existingBid.bidID);
+                
+                if (success) {
+                    // Show success message
+                    removeBidButton.textContent = 'Bid Removed!';
+                    
+                    // Close popup after a delay
+                    setTimeout(() => {
+                        this.hide();
+                    }, 1500);
+                } else {
+                    // Reset button if failed
+                    removeBidButton.textContent = 'Remove Bid';
+                    removeBidButton.disabled = false;
+                    
+                    // Show error message
+                    const errorMsg = document.createElement('p');
+                    errorMsg.textContent = 'Failed to remove bid. Please try again.';
+                    errorMsg.style.color = '#F44336'; // Red
+                    bidContainer.appendChild(errorMsg);
+                }
+            });
+            
+            // Add both buttons to container
+            buttonContainer.appendChild(bidButton);
+            buttonContainer.appendChild(removeBidButton);
+            bidContainer.appendChild(buttonContainer);
+        } else {
+            // Just add the bid button if there's no existing bid
+            bidButton.style.marginTop = '10px'; // Add margin when button is alone
+            bidContainer.appendChild(bidButton);
+        }
 
         // Disable bid button if not enough money
         if (totalAvailableMoney <= 0) {
@@ -239,7 +320,6 @@ class RoomPopup {
             bidContainer.appendChild(errorMsg);
         }
 
-        bidContainer.appendChild(bidButton);
         return bidContainer;
     }
 

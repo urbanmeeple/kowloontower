@@ -101,6 +101,46 @@ export async function placeBid(type, roomID, amount) {
 }
 
 /**
+ * Remove a bid by its ID
+ * @param {number} bidID - The ID of the bid to remove
+ * @returns {Promise<boolean>} True if bid was successfully removed
+ */
+export async function removeBid(bidID) {
+    try {
+        // Send request to server to remove the bid
+        const response = await fetch(`api/bid.php?bidID=${encodeURIComponent(bidID)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            console.error('Server error when removing bid:', await response.text());
+            return false;
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Remove bid from player's active bids array
+            const bidIndex = playerState.activeBids.findIndex(bid => bid.bidID == bidID);
+            if (bidIndex !== -1) {
+                playerState.activeBids.splice(bidIndex, 1);
+                
+                // Update HUD to reflect removed bid
+                playerHUD.update(playerState);
+                console.log(`Bid ${bidID} removed successfully`);
+            }
+            return true;
+        } else {
+            console.error('Failed to remove bid:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error removing bid:", error);
+        return false;
+    }
+}
+
+/**
  * Fetch player's active bids from the server
  * @returns {Promise<boolean>} True if successful
  */

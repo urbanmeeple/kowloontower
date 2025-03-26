@@ -37,7 +37,7 @@ export function getPlayerIDFromStorage() {
  * @param {string} playerID - The playerID to save.
  */
 export function savePlayerIDToStorage(playerID) {
-    localStorage.setItem(config.player.storageKey, playerID);
+    localStorage.setItem(config.player.storageKey, playerID); // Ensure playerID is treated as a string
 }
 
 /**

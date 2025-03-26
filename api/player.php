@@ -41,6 +41,11 @@ function generateUniqueUsername() {
     return $adjective . $noun . $randomNum;
 }
 
+// Function to generate a secure random playerID
+function generatePlayerID() {
+    return bin2hex(random_bytes(16)); // Generates a 32-character random alphanumeric string
+}
+
 // Handle GET request - Fetch player by ID
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $playerID = sanitizeInput($_GET['id']);
@@ -89,6 +94,9 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     writeLog("Creating new player");
     
     try {
+        // Generate a unique playerID
+        $playerID = generatePlayerID();
+
         // Generate a unique username
         $username = generateUniqueUsername();
         
@@ -121,12 +129,13 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Insert the new player
         $stmt = $pdo->prepare("
             INSERT INTO players 
-            (username, money, stock_housing, stock_entertainment, stock_weapons, stock_food, stock_technical, created_datetime, active_datetime) 
+            (playerID, username, money, stock_housing, stock_entertainment, stock_weapons, stock_food, stock_technical, created_datetime, active_datetime) 
             VALUES 
-            (:username, :money, :stock_housing, :stock_entertainment, :stock_weapons, :stock_food, :stock_technical, :created_datetime, :active_datetime)
+            (:playerID, :username, :money, :stock_housing, :stock_entertainment, :stock_weapons, :stock_food, :stock_technical, :created_datetime, :active_datetime)
         ");
         
         $stmt->execute([
+            'playerID' => $playerID,
             'username' => $username,
             'money' => $startingMoney,
             'stock_housing' => $stock_housing,
@@ -143,7 +152,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Fetch the complete player record to return
         $stmt = $pdo->prepare("SELECT * FROM players WHERE playerID = :playerID");
-        $stmt->execute(['playerID' => $newPlayerID]);
+        $stmt->execute(['playerID' => $playerID]);
         $player = $stmt->fetch();
         
         writeLog("New player created: {$player['username']} (ID: {$player['playerID']})");

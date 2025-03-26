@@ -13,7 +13,8 @@ let playerState = {
     stock_entertainment: 0,
     stock_weapons: 0, 
     stock_food: 0,
-    stock_technical: 0
+    stock_technical: 0,
+    activeBids: [] // Track active bids placed by the player
 };
 
 /**
@@ -22,6 +23,116 @@ let playerState = {
  */
 export function getPlayerState() {
     return playerState;
+}
+
+/**
+ * Calculate the total amount of money in active bids
+ * @returns {number} Total money currently in active bids
+ */
+export function getTotalActiveBidsAmount() {
+    return playerState.activeBids.reduce((total, bid) => total + bid.amount, 0);
+}
+
+/**
+ * Calculate the player's available money (total minus active bids)
+ * @returns {number} Available money to spend
+ */
+export function getAvailableMoney() {
+    return playerState.money - getTotalActiveBidsAmount();
+}
+
+/**
+ * Place a new bid for a room
+ * @param {string} type - Type of bid ('construct' or 'buy')
+ * @param {number} roomID - ID of the room being bid on
+ * @param {number} amount - Amount of money to bid
+ * @returns {Promise<boolean>} True if bid was successfully placed
+ */
+export async function placeBid(type, roomID, amount) {
+    try {
+        // Check if player has sufficient available money
+        if (amount > getAvailableMoney()) {
+            console.error("Not enough available money for this bid");
+            return false;
+        }
+
+        // Send bid to server
+        const response = await fetch('api/bid.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: type,
+                roomID: roomID,
+                amount: amount,
+                playerID: playerState.playerID
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Server error when placing bid:', await response.text());
+            return false;
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.bid) {
+            // Add the new bid to player's active bids list
+            playerState.activeBids.push({
+                bidID: data.bid.bidID,
+                type: type,
+                roomID: roomID,
+                amount: amount,
+                status: 'new',
+                placed_datetime: data.bid.placed_datetime
+            });
+
+            // Update HUD to show new bid info
+            playerHUD.update(playerState);
+            console.log(`Bid placed: ${type} bid for room ${roomID}, amount: ${amount}`);
+            return true;
+        } else {
+            console.error('Failed to place bid:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error placing bid:", error);
+        return false;
+    }
+}
+
+/**
+ * Fetch player's active bids from the server
+ * @returns {Promise<boolean>} True if successful
+ */
+export async function fetchPlayerBids() {
+    try {
+        if (!playerState.playerID) return false;
+
+        const response = await fetch(`api/bid.php?playerID=${encodeURIComponent(playerState.playerID)}`);
+        
+        if (!response.ok) {
+            console.error('Server error when fetching bids:', await response.text());
+            return false;
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update player's active bids array
+            playerState.activeBids = data.bids || [];
+            console.log(`Loaded ${playerState.activeBids.length} active bids for player`);
+            
+            // Update HUD to show current bids
+            playerHUD.update(playerState);
+            return true;
+        } else {
+            console.error('Failed to fetch player bids:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error fetching player bids:", error);
+        return false;
+    }
 }
 
 /**
@@ -56,9 +167,14 @@ export async function fetchPlayerData(playerID) {
             playerState = {
                 ...playerState,
                 ...data.player,
-                isNewPlayer: false
+                isNewPlayer: false,
+                activeBids: playerState.activeBids || [] // Preserve active bids if they exist
             };
             savePlayerUsernameToStorage(data.player.username); // Save username to localStorage
+            
+            // After loading player data, fetch their active bids
+            await fetchPlayerBids();
+            
             playerHUD.update(playerState);
             showWelcomeMessage(false);
             return true;

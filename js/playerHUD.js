@@ -46,6 +46,10 @@ class PlayerHUD {
     const timerSection = document.createElement('div');
     timerSection.className = 'hud-section timer-section';
 
+    // Create active bids section
+    const bidsSection = document.createElement('div');
+    bidsSection.className = 'hud-section bids-section';
+
     // Add elements for each data point
     usernameSection.innerHTML = '<span class="label">Player:</span> <span id="player-username">Loading...</span>';
 
@@ -63,14 +67,18 @@ class PlayerHUD {
 
     roomsSection.innerHTML = '<span class="label">Rooms:</span> <span id="player-rooms">0</span>';
 
+    // Active bids display
+    bidsSection.innerHTML = '<span class="label">Active Bids:</span> <span id="active-bids-count">0</span> (<span id="active-bids-amount">$0</span>)';
+
     // Timer display
-    timerSection.innerHTML = '<span class="label">Next Update In:</span> <span id="countdown-timer" class="timer-normal">00</span>';
+    timerSection.innerHTML = '<span class="label">Next Day In:</span> <span id="countdown-timer" class="timer-normal">00</span>';
 
     // Add sections to HUD
     this.element.appendChild(usernameSection);
     this.element.appendChild(moneySection);
     this.element.appendChild(stocksSection);
     this.element.appendChild(roomsSection);
+    this.element.appendChild(bidsSection);
     this.element.appendChild(timerSection);
   }
 
@@ -110,9 +118,26 @@ class PlayerHUD {
     technicalStock.textContent = playerData.stock_technical;
 
     // Update room count
-    document.getElementById('player-rooms').textContent = playerData.roomCount;
+    document.getElementById('player-rooms').textContent = playerData.roomCount || 0;
 
-    console.log('HUD updated with new player data:', playerData);
+    // Update active bids information
+    if (playerData.activeBids) {
+      const activeBidsCount = playerData.activeBids.length;
+      const activeBidsAmount = playerData.activeBids.reduce((total, bid) => total + bid.amount, 0);
+      
+      document.getElementById('active-bids-count').textContent = activeBidsCount;
+      document.getElementById('active-bids-amount').textContent = this.formatMoney(activeBidsAmount);
+      
+      // Add visual indicator if there are active bids
+      const bidsSection = document.querySelector('.bids-section');
+      if (activeBidsCount > 0) {
+        bidsSection.style.color = '#4CAF50'; // Green color when bids are active
+      } else {
+        bidsSection.style.color = ''; // Reset to default color
+      }
+    }
+
+    console.log('HUD updated with new player data');
   }
 
   /**

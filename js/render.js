@@ -1,5 +1,6 @@
 import { config } from './config.js.php';
 import { getLocalGameState } from './state.js';
+import { getPlayerState } from './player.js';
 
 // Constants to replace magic numbers
 const GRID_LEFT_PADDING_CELLS = 100;  // Extra cells on left/right for horizontal centering
@@ -115,6 +116,18 @@ function adjustBrightness(hexColor, factor) {
   }
 }
 
+/**
+ * Check if the player has an active bid on a room
+ * @param {number} roomID - The room ID to check for bids
+ * @returns {Object|null} The bid object if found, otherwise null
+ */
+function getPlayerBidForRoom(roomID) {
+  const playerState = getPlayerState();
+  if (!playerState.activeBids) return null;
+  
+  return playerState.activeBids.find(bid => bid.roomID == roomID);
+}
+
 export function renderGame(rooms) {
   try {
     if (!rooms) {
@@ -169,6 +182,9 @@ export function renderGame(rooms) {
       const roomY = room.location_y * config.cellSize + config.cellSize / 2;
       const roomSize = config.cellSize - 2;
 
+      // Check if player has a bid on this room
+      const playerBid = getPlayerBidForRoom(room.roomID);
+
       if (room.status === 'constructed') {
         const roomRect = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
         roomRect.fill = config.colors.room;
@@ -187,6 +203,20 @@ export function renderGame(rooms) {
         });
         iconText.fill = '#FFFFFF';
         gridGroup.add(iconText);
+        
+        // Add bid indicator if player has a buy bid on this room
+        if (playerBid && playerBid.type === 'buy') {
+          // Currency symbol in top-right corner
+          const bidIndicator = new Two.Text('💰', roomX + roomSize/2.5, roomY - roomSize/2.5, {
+            size: config.cellSize * 0.4,
+            alignment: 'center',
+            baseline: 'middle',
+            style: 'normal',
+            family: 'Arial'
+          });
+          bidIndicator.fill = '#4CAF50'; // Green color
+          gridGroup.add(bidIndicator);
+        }
       } else if (room.status === 'planned') {
         const plannedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
         plannedRoom.fill = 'rgba(255, 0, 0, 0.2)';
@@ -205,6 +235,20 @@ export function renderGame(rooms) {
         });
         iconText.fill = 'rgba(255, 255, 255, 0.5)';
         gridGroup.add(iconText);
+        
+        // Add bid indicator if player has a construct bid on this room
+        if (playerBid && playerBid.type === 'construct') {
+          // Currency symbol in top-right corner
+          const bidIndicator = new Two.Text('💰', roomX + roomSize/2.5, roomY - roomSize/2.5, {
+            size: config.cellSize * 0.4,
+            alignment: 'center',
+            baseline: 'middle',
+            style: 'normal',
+            family: 'Arial'
+          });
+          bidIndicator.fill = '#4CAF50'; // Green color
+          gridGroup.add(bidIndicator);
+        }
       }
     });
 

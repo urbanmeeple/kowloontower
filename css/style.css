@@ -114,8 +114,10 @@ canvas {
 /* Bidding UI Styles */
 input[type=range] {
   -webkit-appearance: none;
-  width: 100%;
+  width: 80%; /* Make slider control shorter (was 100%) */
   background: transparent;
+  margin: 0 auto; /* Center the slider */
+  display: block; /* Add this for proper centering */
 }
 
 input[type=range]::-webkit-slider-thumb {

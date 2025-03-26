@@ -66,12 +66,28 @@ class RoomPopup {
     }
 
     /**
+     * Check if player has an active bid on a room
+     * @param {number} roomID - The room ID to check
+     * @returns {Object|null} The bid object or null if no bid exists
+     */
+    getExistingBid(roomID, type) {
+        const playerState = getPlayerState();
+        return playerState.activeBids.find(
+            bid => bid.roomID == roomID && bid.type === type
+        );
+    }
+
+    /**
      * Create a bidding interface with a slider for entering bid amount
      * @param {string} type - Type of bid ('construct' or 'buy')
      * @param {Object} roomData - Data about the room being bid on
      * @returns {HTMLElement} The container with the bidding interface
      */
     createBidInterface(type, roomData) {
+        // Check if player has an existing bid for this room
+        const existingBid = this.getExistingBid(roomData.roomID, type);
+        const isChangingBid = !!existingBid;
+        
         // Create container for bid interface
         const bidContainer = document.createElement('div');
         bidContainer.className = 'bid-interface';
@@ -85,26 +101,42 @@ class RoomPopup {
 
         // Title for the bid interface
         const bidTitle = document.createElement('h3');
-        bidTitle.textContent = type === 'construct' ? 'Place Construction Bid' : 'Place Buy Bid';
+        bidTitle.textContent = isChangingBid 
+            ? `Your Current ${type === 'construct' ? 'Construction' : 'Buy'} Bid` 
+            : type === 'construct' ? 'Place Construction Bid' : 'Place Buy Bid';
         bidTitle.style.marginTop = '0';
         bidContainer.appendChild(bidTitle);
+
+        // If there's an existing bid, show it
+        if (isChangingBid) {
+            const currentBidInfo = document.createElement('p');
+            currentBidInfo.textContent = `Your current bid: ${this.formatMoney(existingBid.amount)}`;
+            currentBidInfo.style.fontWeight = 'bold';
+            currentBidInfo.style.color = '#4CAF50'; // Green text for current bid
+            bidContainer.appendChild(currentBidInfo);
+        }
 
         // Get available money
         const availableMoney = getAvailableMoney();
         
+        // If changing bid, add the existing bid amount to available money
+        const totalAvailableMoney = isChangingBid 
+            ? availableMoney + existingBid.amount 
+            : availableMoney;
+        
         // Show available money
         const availableMoneyElement = document.createElement('p');
-        availableMoneyElement.textContent = `Available Money: ${this.formatMoney(availableMoney)}`;
+        availableMoneyElement.textContent = `Available Money: ${this.formatMoney(totalAvailableMoney)}`;
         bidContainer.appendChild(availableMoneyElement);
 
         // Minimum bid amount (10% of available money or $10,000, whichever is more)
-        const minBidAmount = Math.max(10000, Math.floor(availableMoney * 0.1));
+        const minBidAmount = Math.max(10000, Math.floor(totalAvailableMoney * 0.1));
         
         // Maximum bid amount (available money)
-        const maxBidAmount = availableMoney;
+        const maxBidAmount = totalAvailableMoney;
         
-        // Set initial bid amount to minimum
-        let bidAmount = minBidAmount;
+        // Set initial bid amount to existing bid or minimum
+        let bidAmount = isChangingBid ? existingBid.amount : minBidAmount;
 
         // Slider container
         const sliderContainer = document.createElement('div');
@@ -119,7 +151,7 @@ class RoomPopup {
         slider.value = bidAmount;
         slider.step = 1000; // Increment in thousands
         Object.assign(slider.style, {
-            width: '100%',
+            width: '80%', // Make slider shorter (was 100%)
             margin: '10px 0'
         });
         sliderContainer.appendChild(slider);
@@ -140,7 +172,15 @@ class RoomPopup {
 
         // Create bid button
         const bidButton = document.createElement('button');
-        bidButton.textContent = type === 'construct' ? 'Place Construction Bid' : 'Place Buy Bid';
+        
+        // Use different text formatting for "Bid" and "to construct/buy"
+        const buttonText = isChangingBid ? 'Change bid' : (type === 'construct' ? 'Bid' : 'Bid');
+        const secondaryText = type === 'construct' ? ' to construct' : ' to buy';
+        
+        bidButton.innerHTML = isChangingBid 
+            ? 'Change bid' 
+            : `<span style="font-size: 1.2em; font-weight: bold;">${buttonText}</span><span style="font-size: 0.8em">${secondaryText}</span>`;
+        
         Object.assign(bidButton.style, {
             backgroundColor: type === 'construct' ? '#2196F3' : '#9C27B0',
             color: 'white',
@@ -163,7 +203,7 @@ class RoomPopup {
             
             if (success) {
                 // Show success message
-                bidButton.textContent = 'Bid Placed!';
+                bidButton.textContent = isChangingBid ? 'Bid Updated!' : 'Bid Placed!';
                 bidButton.style.backgroundColor = '#4CAF50'; // Green
                 
                 // Close popup after a delay
@@ -172,7 +212,11 @@ class RoomPopup {
                 }, 1500);
             } else {
                 // Reset button if failed
-                bidButton.textContent = type === 'construct' ? 'Place Construction Bid' : 'Place Buy Bid';
+                if (isChangingBid) {
+                    bidButton.textContent = 'Change bid';
+                } else {
+                    bidButton.innerHTML = `<span style="font-size: 1.2em; font-weight: bold;">${buttonText}</span><span style="font-size: 0.8em">${secondaryText}</span>`;
+                }
                 bidButton.disabled = false;
                 
                 // Show error message
@@ -184,7 +228,7 @@ class RoomPopup {
         });
 
         // Disable bid button if not enough money
-        if (availableMoney <= 0) {
+        if (totalAvailableMoney <= 0) {
             bidButton.disabled = true;
             bidButton.textContent = 'Insufficient Funds';
             bidButton.style.backgroundColor = '#9E9E9E'; // Gray

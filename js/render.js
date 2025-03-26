@@ -237,7 +237,7 @@ export function animateBackground() {
       try {
         // Define constants for brightness range
         const BRIGHTNESS_MIN = 0.5;  // Minimum brightness (night)
-        const BRIGHTNESS_MAX = 1.0;  // Maximum brightness (day)
+        const BRIGHTNESS_MAX = 1.5;  // Maximum brightness (day)
         const BRIGHTNESS_RANGE = BRIGHTNESS_MAX - BRIGHTNESS_MIN;
         
         let brightness = BRIGHTNESS_MIN; // Default to minimum if cycle not active

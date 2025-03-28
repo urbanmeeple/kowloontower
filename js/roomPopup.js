@@ -24,20 +24,21 @@ class RoomPopup {
             borderRadius: '5px',
             zIndex: '1001',
             boxShadow: '0 3px 6px rgba(0, 0, 0, 0.5)',
-            overflow: 'auto',
+            overflow: 'visible', // Changed from 'auto' to prevent scrollbars
             textAlign: 'center',
             fontFamily: 'Arial, sans-serif',
             fontSize: '12px',
             border: '1px solid #444',
             width: 'auto', // Allow dynamic width
             maxWidth: '100%', // Ensure it doesn't exceed the screen width
+            boxSizing: 'border-box', // Ensure padding is included in width calculation
         });
 
         // Adjust width dynamically based on the tower grid
         const towerGrid = document.getElementById('gameCanvas');
         if (towerGrid) {
             const towerGridWidth = towerGrid.offsetWidth;
-            this.popupContainer.style.maxWidth = `${towerGridWidth}px`;
+            this.popupContainer.style.maxWidth = `${Math.min(towerGridWidth - 20, 600)}px`;
         }
 
         // Create close button
@@ -103,7 +104,8 @@ class RoomPopup {
             padding: '15px',
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             borderRadius: '5px',
-            width: '100%'
+            width: 'auto', // Changed from 100% to auto
+            boxSizing: 'border-box', // Include padding in width calculation
         });
 
         // Title for the bid interface

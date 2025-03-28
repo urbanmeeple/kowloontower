@@ -166,6 +166,20 @@ input[type=range]::-moz-range-track {
   background-color: rgba(0, 0, 0, 0.3);
   border-radius: 5px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  width: auto !important; /* Override any inline width */
+  overflow: visible;
+}
+
+/* Room popup styles */
+#room-popup {
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+#room-popup * {
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 /* Active bids indicator styles */

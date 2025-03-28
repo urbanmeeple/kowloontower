@@ -20,18 +20,25 @@ class RoomPopup {
             transform: 'translate(-50%, -50%)',
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
             color: 'white',
-            padding: '12px', // Reduced padding
-            borderRadius: '5px', // Reduced border radius
+            padding: '12px',
+            borderRadius: '5px',
             zIndex: '1001',
-            boxShadow: '0 3px 6px rgba(0, 0, 0, 0.5)', // Reduced shadow
-            maxWidth: '60%', // Reduced width
-            maxHeight: '60%', // Reduced height
+            boxShadow: '0 3px 6px rgba(0, 0, 0, 0.5)',
             overflow: 'auto',
             textAlign: 'center',
             fontFamily: 'Arial, sans-serif',
-            fontSize: '12px', // Reduced font size
+            fontSize: '12px',
             border: '1px solid #444',
+            width: 'auto', // Allow dynamic width
+            maxWidth: '100%', // Ensure it doesn't exceed the screen width
         });
+
+        // Adjust width dynamically based on the tower grid
+        const towerGrid = document.getElementById('gameCanvas');
+        if (towerGrid) {
+            const towerGridWidth = towerGrid.offsetWidth;
+            this.popupContainer.style.maxWidth = `${towerGridWidth}px`;
+        }
 
         // Create close button
         this.closeButton = document.createElement('button');

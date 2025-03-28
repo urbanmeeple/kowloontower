@@ -1,8 +1,6 @@
 // This file contains functions to manage the player including fetching, creation, and initialization.
 import { config } from './config.js.php';
 import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports an instance
-import { fetchPlayerBids } from './player.js';
-import { fetchUpdatedGameState } from './updater.js';
 
 // Local player state to replace gameState.player usage
 let playerState = {

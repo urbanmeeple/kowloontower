@@ -21,8 +21,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // First load game state directly - this ensures we have data before rendering
     console.log("Fetching initial game state...");
     await fetchUpdatedGameState();
+
+    // Initialize the player
+    await initializePlayer();
+    console.log("Player initialization complete.");
     
-    // Only now resize canvas and render (after we have game state)
+    // Only now resize canvas and render (after we have game state and the player is initialized)
     resizeCanvas(gameCanvas);
     
     // Start periodic game state updates after initial load
@@ -30,10 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Attach resize event listener
     window.addEventListener('resize', () => resizeCanvas(gameCanvas));
-    
-    // Initialize the player
-    await initializePlayer();
-    console.log("Player initialization complete.");
     
   } catch (error) {
     console.error("Error in main initialization:", error);

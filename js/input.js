@@ -41,6 +41,22 @@ export function initInputHandlers(gameCanvas) {
       }
     });
     
+    // Mouse wheel handler for vertical panning
+    gameCanvas.addEventListener('wheel', event => {
+      try {
+        event.preventDefault();
+        const WHEEL_SENSITIVITY = 0.5; // Adjust this value to control scroll sensitivity
+        const wheelDelta = event.deltaY * WHEEL_SENSITIVITY;
+        const currentPan = getVerticalPan();
+        
+        // Scroll down to pan down, scroll up to pan up
+        setVerticalPan(currentPan - wheelDelta);
+        renderGame(getLocalGameState().rooms); // Re-render game
+      } catch (error) {
+        console.error("Error in wheel event handler:", error);
+      }
+    }, { passive: false });
+    
     // Touch events (vertical panning)
     let touchStartY = 0;
     let initialVerticalPan = 0;

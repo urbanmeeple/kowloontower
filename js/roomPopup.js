@@ -140,14 +140,14 @@ class RoomPopup {
         availableMoneyElement.textContent = `Available Money: ${this.formatMoney(totalAvailableMoney)}`;
         bidContainer.appendChild(availableMoneyElement);
 
-        // Minimum bid amount (10% of available money or $10,000, whichever is more)
-        const minBidAmount = Math.max(10000, Math.floor(totalAvailableMoney * 0.1));
+        // Minimum bid amount is always 1
+        const minBidAmount = 1;
         
         // Maximum bid amount (available money)
         const maxBidAmount = totalAvailableMoney;
         
-        // Set initial bid amount to existing bid or 0
-        let bidAmount = isChangingBid ? existingBid.amount : 0;
+        // Set initial bid amount to existing bid or minimum bid amount
+        let bidAmount = isChangingBid ? existingBid.amount : minBidAmount;
 
         // Slider container
         const sliderContainer = document.createElement('div');
@@ -157,12 +157,12 @@ class RoomPopup {
         // Create slider for bid amount
         const slider = document.createElement('input');
         slider.type = 'range';
-        slider.min = 0; // Always start at 0
+        slider.min = minBidAmount; // Set minimum value to 1
         slider.max = maxBidAmount;
         slider.value = bidAmount;
-        slider.step = 1000; // Increment in thousands
+        slider.step = 1; // Increment by 1
         Object.assign(slider.style, {
-            width: '60%', // Make slider even shorter (was 80%)
+            width: '80%', 
             margin: '10px 0'
         });
         sliderContainer.appendChild(slider);

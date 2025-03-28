@@ -42,11 +42,11 @@ export function getAvailableMoney() {
 }
 
 /**
- * Place a new bid for a room
+ * Place a new bid or update an existing bid for a room
  * @param {string} type - Type of bid ('construct' or 'buy')
  * @param {number} roomID - ID of the room being bid on
  * @param {number} amount - Amount of money to bid
- * @returns {Promise<boolean>} True if bid was successfully placed
+ * @returns {Promise<boolean>} True if bid was successfully placed or updated
  */
 export async function placeBid(type, roomID, amount) {
     try {
@@ -56,46 +56,89 @@ export async function placeBid(type, roomID, amount) {
             return false;
         }
 
-        // Send bid to server
-        const response = await fetch('api/bid.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                type: type,
-                roomID: roomID,
-                amount: amount,
-                playerID: playerState.playerID
-            })
-        });
+        // Check if there's an existing bid for this room and type
+        const existingBid = playerState.activeBids.find(
+            bid => bid.roomID === roomID && bid.type === type
+        );
 
-        if (!response.ok) {
-            console.error('Server error when placing bid:', await response.text());
-            return false;
-        }
+        if (existingBid) {
+            // Update the existing bid if the amount is different
+            if (existingBid.amount !== amount) {
+                const response = await fetch(`api/bid.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: type,
+                        roomID: roomID,
+                        amount: amount,
+                        playerID: playerState.playerID
+                    })
+                });
 
-        const data = await response.json();
-        
-        if (data.success && data.bid) {
-            // Add the new bid to player's active bids list
-            playerState.activeBids.push({
-                bidID: data.bid.bidID,
-                type: type,
-                roomID: roomID,
-                amount: amount,
-                status: 'new',
-                placed_datetime: data.bid.placed_datetime
+                if (!response.ok) {
+                    console.error('Server error when updating bid:', await response.text());
+                    return false;
+                }
+
+                const data = await response.json();
+                if (data.success && data.bid) {
+                    // Update the bid in the player's active bids array
+                    existingBid.amount = amount;
+                    existingBid.placed_datetime = data.bid.placed_datetime;
+
+                    // Update HUD to reflect the updated bid
+                    playerHUD.update(playerState);
+                    console.log(`Bid updated: ${type} bid for room ${roomID}, new amount: ${amount}`);
+                    return true;
+                } else {
+                    console.error('Failed to update bid:', data.error);
+                    return false;
+                }
+            } else {
+                console.log("Bid amount is unchanged, no update needed");
+                return true;
+            }
+        } else {
+            // Place a new bid if no existing bid is found
+            const response = await fetch('api/bid.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: type,
+                    roomID: roomID,
+                    amount: amount,
+                    playerID: playerState.playerID
+                })
             });
 
-            // Update HUD to show new bid info
-            playerHUD.update(playerState);
-            console.log(`Bid placed: ${type} bid for room ${roomID}, amount: ${amount}`);
-            return true;
-        } else {
-            console.error('Failed to place bid:', data.error);
-            return false;
+            if (!response.ok) {
+                console.error('Server error when placing bid:', await response.text());
+                return false;
+            }
+
+            const data = await response.json();
+            if (data.success && data.bid) {
+                // Add the new bid to player's active bids list
+                playerState.activeBids.push({
+                    bidID: data.bid.bidID,
+                    type: type,
+                    roomID: roomID,
+                    amount: amount,
+                    status: 'new',
+                    placed_datetime: data.bid.placed_datetime
+                });
+
+                // Update HUD to show new bid info
+                playerHUD.update(playerState);
+                console.log(`Bid placed: ${type} bid for room ${roomID}, amount: ${amount}`);
+                return true;
+            } else {
+                console.error('Failed to place bid:', data.error);
+                return false;
+            }
         }
     } catch (error) {
-        console.error("Error placing bid:", error);
+        console.error("Error placing or updating bid:", error);
         return false;
     }
 }

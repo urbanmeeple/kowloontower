@@ -50,16 +50,19 @@ export function getAvailableMoney() {
  */
 export async function placeBid(type, roomID, amount) {
     try {
-        // Check if player has sufficient available money
-        if (amount > getAvailableMoney()) {
-            console.error("Not enough available money for this bid");
-            return false;
-        }
-
         // Check if there's an existing bid for this room and type
         const existingBid = playerState.activeBids.find(
             bid => bid.roomID === roomID && bid.type === type
         );
+
+        // Calculate the effective available money
+        const availableMoney = getAvailableMoney() + (existingBid ? existingBid.amount : 0);
+
+        // Check if the player has enough money for the new bid
+        if (amount > availableMoney) {
+            console.error("Not enough available money for this bid");
+            return false;
+        }
 
         if (existingBid) {
             // Update the existing bid if the amount is different

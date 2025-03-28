@@ -27,14 +27,14 @@ export function initInputHandlers(gameCanvas) {
     // Key handler for vertical panning.
     window.addEventListener('keydown', event => {
       try {
-        const PAN_STEP = config.view.keyPanAmount;
+        const PAN_STEP = config.view.keyPanAmount; // Amount to pan per key press
         const currentPan = getVerticalPan();
         if (event.key === 'ArrowUp') {
-          setVerticalPan(currentPan + PAN_STEP);
-          renderGame();
+          setVerticalPan(currentPan - PAN_STEP); // Move up
+          renderGame(getLocalGameState().rooms); // Re-render game
         } else if (event.key === 'ArrowDown') {
-          setVerticalPan(currentPan - PAN_STEP);
-          renderGame();
+          setVerticalPan(currentPan + PAN_STEP); // Move down
+          renderGame(getLocalGameState().rooms); // Re-render game
         }
       } catch (error) {
         console.error("Error in key event handler:", error);
@@ -59,8 +59,8 @@ export function initInputHandlers(gameCanvas) {
       try {
         if (event.touches.length === 1) {
           const deltaY = event.touches[0].clientY - touchStartY;
-          setVerticalPan(initialVerticalPan + deltaY); // Use setter to update vertical pan
-          renderGame();
+          setVerticalPan(initialVerticalPan - deltaY); // Update vertical pan
+          renderGame(getLocalGameState().rooms); // Re-render game
         }
         event.preventDefault();
       } catch (error) {
@@ -69,7 +69,7 @@ export function initInputHandlers(gameCanvas) {
     }, { passive: false });
     
     gameCanvas.addEventListener('touchend', event => {
-      // Nothing additional.
+      // Nothing additional needed for touchend
     });
   } catch (error) {
     console.error("Error in initInputHandlers:", error);

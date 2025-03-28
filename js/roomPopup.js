@@ -1,4 +1,6 @@
 import { getPlayerState, placeBid, getAvailableMoney, removeBid } from './player.js';
+import { renderGame } from './render.js';
+import { getLocalGameState } from './state.js';
 
 class RoomPopup {
     constructor() {
@@ -236,6 +238,12 @@ class RoomPopup {
                 bidButton.textContent = isChangingBid ? 'Bid Updated!' : 'Bid Placed!';
                 bidButton.style.backgroundColor = '#4CAF50'; // Green
                 
+                // Immediately update the game UI to show the bid indicator
+                const gameState = getLocalGameState();
+                if (gameState && gameState.rooms) {
+                    renderGame(gameState.rooms);
+                }
+                
                 // Close popup after a delay
                 setTimeout(() => {
                     this.hide();
@@ -289,6 +297,12 @@ class RoomPopup {
                 if (success) {
                     // Show success message
                     removeBidButton.textContent = 'Bid Removed!';
+                    
+                    // Immediately update the game UI to remove the bid indicator
+                    const gameState = getLocalGameState();
+                    if (gameState && gameState.rooms) {
+                        renderGame(gameState.rooms);
+                    }
                     
                     // Close popup after a delay
                     setTimeout(() => {

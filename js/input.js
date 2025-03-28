@@ -30,10 +30,10 @@ export function initInputHandlers(gameCanvas) {
         const PAN_STEP = config.view.keyPanAmount; // Amount to pan per key press
         const currentPan = getVerticalPan();
         if (event.key === 'ArrowUp') {
-          setVerticalPan(currentPan - PAN_STEP); // Move up
+          setVerticalPan(currentPan + PAN_STEP); // Move up
           renderGame(getLocalGameState().rooms); // Re-render game
         } else if (event.key === 'ArrowDown') {
-          setVerticalPan(currentPan + PAN_STEP); // Move down
+          setVerticalPan(currentPan - PAN_STEP); // Move down
           renderGame(getLocalGameState().rooms); // Re-render game
         }
       } catch (error) {
@@ -58,7 +58,7 @@ export function initInputHandlers(gameCanvas) {
     gameCanvas.addEventListener('touchmove', event => {
       try {
         if (event.touches.length === 1) {
-          const deltaY = event.touches[0].clientY - touchStartY;
+          const deltaY = touchStartY - event.touches[0].clientY; // Invert panning direction
           setVerticalPan(initialVerticalPan - deltaY); // Update vertical pan
           renderGame(getLocalGameState().rooms); // Re-render game
         }

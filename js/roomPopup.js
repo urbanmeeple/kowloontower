@@ -242,6 +242,8 @@ class RoomPopup {
         const secondaryText = type === 'construct' ? ' to construct' : ' to buy';
         
         const bidButton = document.createElement('button');
+        bidButton.dataset.originalText = bidButton.textContent;
+        bidButton.dataset.originalColor = '#4CAF50'; // green
         bidButton.innerHTML = isChangingBid 
             ? 'Change bid' 
             : `<span style="font-size: 1.2em; font-weight: bold;">${buttonText}</span><span style="font-size: 0.8em">${secondaryText}</span>`;
@@ -322,6 +324,8 @@ class RoomPopup {
         if (isChangingBid) {
             const removeBidButton = document.createElement('button');
             removeBidButton.textContent = 'Remove Bid';
+            removeBidButton.dataset.originalText = removeBidButton.textContent;
+            removeBidButton.dataset.originalColor = '#F44336'; // red
             Object.assign(removeBidButton.style, {
                 backgroundColor: '#F44336', // Red color for removal
                 color: 'white',

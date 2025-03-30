@@ -12,6 +12,9 @@ if (file_exists($appCacheFile)) {
         'lastCacheUpdate' => $lastCacheUpdate,
         'readableTime' => date('Y-m-d H:i:s', $lastCacheUpdate)
     ]);
+
+    // Free memory by unsetting variables
+    unset($lastCacheUpdate);
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Cache file not found']);

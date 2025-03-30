@@ -5,10 +5,16 @@ require_once('../config.php');
 // Define the log file path (make sure the logs directory exists and is writable)
 $logFile = dirname(__FILE__) . '/../logs/cron.log';
 
-// Logging function: Append timestamped messages to the log file.
+// Logging function: Append timestamped messages to the log file and rotate if necessary.
 function writeLog($message) {
     global $logFile;
     $timestamp = date('Y-m-d H:i:s');
+    
+    // Rotate log file if it exceeds 5MB
+    if (file_exists($logFile) && filesize($logFile) > 5 * 1024 * 1024) {
+        rename($logFile, $logFile . '.' . time());
+    }
+    
     file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
 }
 
@@ -290,65 +296,86 @@ function processBids() {
 
 function cacheGameData() {
     global $pdo, $appCacheFile;
-    // This function caches relevant tables into a JSON file
     $data = [];
-
-    // Fetch all rooms
-    $stmtRooms = $pdo->query("SELECT * FROM rooms");
-    $data['rooms'] = $stmtRooms->fetchAll(PDO::FETCH_ASSOC);
-
-    // Fetch all players
-    $stmtPlayers = $pdo->query("SELECT * FROM players");
-    $data['players'] = $stmtPlayers->fetchAll(PDO::FETCH_ASSOC);
-
-    // Fetch all bids
-    $stmtBids = $pdo->query("SELECT * FROM bids");
-    $data['bids'] = $stmtBids->fetchAll(PDO::FETCH_ASSOC);
-
-    // Fetch join table
-    $stmtPlayersRooms = $pdo->query("SELECT * FROM players_rooms");
-    $data['players_rooms'] = $stmtPlayersRooms->fetchAll(PDO::FETCH_ASSOC);
-
-    // Fetch game state
-    $stmtGameState = $pdo->query("SELECT * FROM game_state");
-    $data['game_state'] = $stmtGameState->fetchAll(PDO::FETCH_ASSOC);
-
-    // Build a mapping from playerID to username
     $playerIDToUsername = [];
-    foreach ($data['players'] as &$p) {
-        $playerIDToUsername[$p['playerID']] = $p['username'];
-        unset($p['playerID']); // Remove playerID from the players array
-    }
-    unset($p);
 
-    // Replace playerID with username in 'bids'
-    foreach ($data['bids'] as &$bid) {
+    // Fetch players incrementally
+    $stmtPlayers = $pdo->query("SELECT playerID, username FROM players");
+    while ($player = $stmtPlayers->fetch(PDO::FETCH_ASSOC)) {
+        $playerIDToUsername[$player['playerID']] = $player['username'];
+    }
+    unset($stmtPlayers);
+
+    // Write JSON incrementally for large datasets
+    $cacheHandle = fopen($appCacheFile, 'w');
+    fwrite($cacheHandle, '{');
+
+    // Fetch rooms incrementally
+    fwrite($cacheHandle, '"rooms":[');
+    $stmtRooms = $pdo->query("SELECT * FROM rooms");
+    $first = true;
+    while ($room = $stmtRooms->fetch(PDO::FETCH_ASSOC)) {
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($room));
+        $first = false;
+    }
+    fwrite($cacheHandle, '],');
+    unset($stmtRooms);
+
+    // Fetch bids incrementally
+    fwrite($cacheHandle, '"bids":[');
+    $stmtBids = $pdo->query("SELECT * FROM bids");
+    $first = true;
+    while ($bid = $stmtBids->fetch(PDO::FETCH_ASSOC)) {
         $bid['username'] = $playerIDToUsername[$bid['playerID']] ?? 'Unknown';
         unset($bid['playerID']);
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($bid));
+        $first = false;
     }
-    unset($bid);
+    fwrite($cacheHandle, '],');
+    unset($stmtBids);
 
-    // Replace playerID with username in 'players_rooms'
-    foreach ($data['players_rooms'] as &$pr) {
+    // Fetch players_rooms incrementally
+    fwrite($cacheHandle, '"players_rooms":[');
+    $stmtPlayersRooms = $pdo->query("SELECT * FROM players_rooms");
+    $first = true;
+    while ($pr = $stmtPlayersRooms->fetch(PDO::FETCH_ASSOC)) {
         $pr['username'] = $playerIDToUsername[$pr['playerID']] ?? 'Unknown';
         unset($pr['playerID']);
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($pr));
+        $first = false;
     }
-    unset($pr);
-    file_put_contents($appCacheFile, json_encode($data));
+    fwrite($cacheHandle, '],');
+    unset($stmtPlayersRooms);
+
+    // Fetch game_state incrementally
+    fwrite($cacheHandle, '"game_state":[');
+    $stmtGameState = $pdo->query("SELECT * FROM game_state");
+    $first = true;
+    while ($state = $stmtGameState->fetch(PDO::FETCH_ASSOC)) {
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($state));
+        $first = false;
+    }
+    fwrite($cacheHandle, ']');
+    unset($stmtGameState);
+
+    fwrite($cacheHandle, '}');
+    fclose($cacheHandle);
+
     writeLog("Cached game data to {$appCacheFile}");
 }
 
 try {
-    // Prevent overlapping cron jobs using a lock file
+    // Use flock() for robust locking
     $lockFile = dirname(__FILE__) . '/../temp/updateState.lock';
-    if (file_exists($lockFile)) {
-        $lockAge = time() - filemtime($lockFile);
-        if ($lockAge < 60) { // If lock file is less than 60 seconds old, exit
-            writeLog("Cron job already running. Exiting.");
-            exit;
-        }
+    $lockHandle = fopen($lockFile, 'w');
+    if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+        writeLog("Cron job already running. Exiting.");
+        exit;
     }
-    touch($lockFile); // Create or update lock file
 
     // Update room statuses before processing bids
     updateRoomStatuses();
@@ -399,7 +426,6 @@ try {
         'totalRooms' => $totalRooms,
         'lastUpdateTime' => $currentUtcDateTime
     ]);
-    unlink($lockFile); // Remove lock file after successful execution
 } catch (PDOException $e) {
     writeLog("Database error in updateState.php: " . $e->getMessage());
     http_response_code(500);
@@ -409,8 +435,11 @@ try {
     http_response_code(500);
     echo json_encode(['error' => 'An unexpected error occurred.']);
 } finally {
-    if (file_exists($lockFile)) {
-        unlink($lockFile); // Ensure lock file is removed in case of errors
+    // Ensure lock file is released
+    if ($lockHandle) {
+        flock($lockHandle, LOCK_UN);
+        fclose($lockHandle);
+        unlink($lockFile);
     }
 }
 ?>

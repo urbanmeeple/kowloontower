@@ -66,13 +66,15 @@ else if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['playerID'])) {
         $stmt = $pdo->prepare("SELECT * FROM bids WHERE playerID = :playerID AND status IN ('new', 'active')");
         $stmt->execute(['playerID' => $playerID]);
         $bids = $stmt->fetchAll();
-        
+        unset($stmt);
+
         writeLog("Found " . count($bids) . " active bids for player $playerID");
         
         echo json_encode([
             'success' => true,
             'bids' => $bids
         ]);
+        unset($bids);
     } catch (Exception $e) {
         writeLog("Database error when fetching bids: " . $e->getMessage());
         http_response_code(500);

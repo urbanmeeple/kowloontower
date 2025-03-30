@@ -6,7 +6,11 @@ header('Content-Type: application/json');
 // Use the appCacheFile from config.php
 if (file_exists($appCacheFile)) {
     // Read and output the cache; no modifications allowed.
-    echo file_get_contents($appCacheFile);
+    $cacheContent = file_get_contents($appCacheFile);
+    echo $cacheContent;
+
+    // Free memory by unsetting variables
+    unset($cacheContent);
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Cache file not found.']);

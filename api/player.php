@@ -59,12 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
             'active_datetime' => $currentUtcDateTime,
             'playerID' => $playerID
         ]);
-        
+        unset($updateStmt);
+
         // Now fetch the player data
         $stmt = $pdo->prepare("SELECT * FROM players WHERE playerID = :playerID");
         $stmt->execute(['playerID' => $playerID]);
         $player = $stmt->fetch();
-        
+        unset($stmt);
+
         if ($player) {
             writeLog("Player found: {$player['username']}");
             echo json_encode([
@@ -80,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
                 'error' => 'Player not found'
             ]);
         }
+        unset($player);
     } catch (Exception $e) {
         writeLog("Database error when fetching player: " . $e->getMessage());
         http_response_code(500);

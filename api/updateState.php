@@ -73,7 +73,7 @@ function addPlannedRooms($numPlannedRooms) {
     
     // Second priority: locations adjacent to constructed rooms
     if (!empty($occupiedCoords)) {
-        $constructedRooms = $pdo->query("SELECT location_x, location_y FROM rooms WHERE status = 'constructed'")->fetchAll();
+        $constructedRooms = $pdo->query("SELECT location_x, location_y FROM rooms WHERE status IN ('new_constructed', 'old_constructed')")->fetchAll();
         $constructedCoords = array_map(function($room) {
             return ['x' => $room['location_x'], 'y' => $room['location_y']];
         }, $constructedRooms);

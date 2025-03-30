@@ -185,7 +185,7 @@ export function renderGame(rooms) {
       // Check if player has a bid on this room
       const playerBid = getPlayerBidForRoom(room.roomID);
 
-      if (room.status === 'constructed') {
+      if (room.status === 'new_constructed' || room.status === 'old_constructed') {
         const roomRect = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
         roomRect.fill = config.colors.room;
         roomRect.stroke = '#000000';

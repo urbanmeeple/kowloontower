@@ -355,7 +355,9 @@ class RoomPopup {
         this.setupStyles(); // Re-add styles and close button
 
         // Room type and sector
-        const roomType = roomData.status === 'constructed' ? 'Constructed Room' : 'Planned Room';
+        const roomType = (roomData.status === 'new_constructed' || roomData.status === 'old_constructed') 
+            ? 'Constructed Room' 
+            : 'Planned Room';
         const sectorType = roomData.sector_type || 'Unknown Sector';
 
         // Create elements
@@ -388,7 +390,7 @@ class RoomPopup {
 
         this.popupContainer.appendChild(roomInfo);
 
-        if (roomData.status === 'constructed') {
+        if (roomData.status === 'new_constructed' || roomData.status === 'old_constructed') {
             // Owner information
             if (roomData.username) {
                 const ownerInfo = document.createElement('p');

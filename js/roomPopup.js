@@ -369,24 +369,12 @@ class RoomPopup {
         // Room information
         const roomInfo = document.createElement('div');
         
-        // Room ID (useful for debugging)
-        const roomId = document.createElement('p');
-        roomId.textContent = `Room ID: ${roomData.roomID}`;
-        roomId.style.fontSize = '12px';
-        roomId.style.color = '#aaa';
-        roomInfo.appendChild(roomId);
-
+        // Remove room location information
         // Sector information
         const sector = document.createElement('p');
         sector.textContent = `Sector: ${sectorType}`;
         sector.style.marginBottom = '10px';
         roomInfo.appendChild(sector);
-
-        // Location information
-        const location = document.createElement('p');
-        location.textContent = `Location: (${roomData.location_x}, ${roomData.location_y})`;
-        location.style.marginBottom = '10px';
-        roomInfo.appendChild(location);
 
         this.popupContainer.appendChild(roomInfo);
 

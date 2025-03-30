@@ -108,6 +108,13 @@ class RoomPopup {
             button.style.backgroundColor = '#9E9E9E'; // Grey color
             button.textContent = 'Bidding Disabled';
         });
+
+        // Disable renovate button if it exists
+        if (this.renovateButton) {
+            this.renovateButton.disabled = true;
+            this.renovateButton.style.backgroundColor = '#9E9E9E'; // Grey color
+            this.renovateButton.textContent = 'Renovation Disabled';
+        }
     }
 
     /**
@@ -121,6 +128,13 @@ class RoomPopup {
             button.style.backgroundColor = button.dataset.originalColor || ''; // Restore original color
             button.textContent = button.dataset.originalText || 'Place Bid'; // Restore original text
         });
+
+        // Enable renovate button if it exists
+        if (this.renovateButton) {
+            this.renovateButton.disabled = false;
+            this.renovateButton.style.backgroundColor = this.renovateButton.dataset.originalColor || ''; // Restore original color
+            this.renovateButton.textContent = this.renovateButton.dataset.originalText || 'Renovate'; // Restore original text
+        }
     }
 
     /**
@@ -446,16 +460,20 @@ class RoomPopup {
             this.popupContainer.appendChild(wear);
 
             // Renovate button
-            const renovateButton = document.createElement('button');
-            renovateButton.textContent = 'Renovate';
-            renovateButton.style.backgroundColor = '#4CAF50';
-            renovateButton.style.color = 'white';
-            renovateButton.style.border = 'none';
-            renovateButton.style.padding = '8px 16px';
-            renovateButton.style.borderRadius = '5px';
-            renovateButton.style.cursor = 'pointer';
-            renovateButton.style.fontSize = '14px';
-            this.popupContainer.appendChild(renovateButton);
+            this.renovateButton = document.createElement('button');
+            this.renovateButton.textContent = 'Renovate';
+            this.renovateButton.dataset.originalText = 'Renovate'; // Store original text
+            this.renovateButton.dataset.originalColor = '#4CAF50'; // Store original color
+            Object.assign(this.renovateButton.style, {
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px'
+            });
+            this.popupContainer.appendChild(this.renovateButton);
 
             // Add bid to buy interface
             const buyBidInterface = this.createBidInterface('buy', roomData);

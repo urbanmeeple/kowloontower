@@ -153,7 +153,11 @@ function isLocationOccupied($x, $y, $occupiedCoords) {
  */
 function isAdjacentToConstructed($x, $y, $constructedCoords) {
     foreach ($constructedCoords as $coord) {
-        if (abs($coord['x'] - $x) <= 1 && abs($coord['y'] - $y) <= 1) {
+        // Only consider direct neighbors (no diagonals)
+        if (
+            ($coord['x'] === $x && abs($coord['y'] - $y) === 1) || // Above or below
+            ($coord['y'] === $y && abs($coord['x'] - $x) === 1)    // Left or right
+        ) {
             return true;
         }
     }

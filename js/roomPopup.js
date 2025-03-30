@@ -369,7 +369,6 @@ class RoomPopup {
         // Room information
         const roomInfo = document.createElement('div');
         
-        // Remove room location information
         // Sector information
         const sector = document.createElement('p');
         sector.textContent = `Sector: ${sectorType}`;
@@ -380,9 +379,11 @@ class RoomPopup {
 
         if (roomData.status === 'new_constructed' || roomData.status === 'old_constructed') {
             // Owner information
-            if (roomData.username) {
+            const gameState = getLocalGameState();
+            const ownerEntry = gameState.players_rooms.find(pr => pr.roomID === roomData.roomID);
+            if (ownerEntry && ownerEntry.username) {
                 const ownerInfo = document.createElement('p');
-                ownerInfo.textContent = `Owner: ${roomData.username}`;
+                ownerInfo.textContent = `Owner: ${ownerEntry.username}`;
                 ownerInfo.style.marginBottom = '10px';
                 this.popupContainer.appendChild(ownerInfo);
             }
@@ -403,7 +404,6 @@ class RoomPopup {
             payMaintenanceButton.style.borderRadius = '5px';
             payMaintenanceButton.style.cursor = 'pointer';
             payMaintenanceButton.style.fontSize = '14px';
-            payMaintenanceButton.style.marginTop = '10px';
             this.popupContainer.appendChild(payMaintenanceButton);
 
             // Add bid to buy interface

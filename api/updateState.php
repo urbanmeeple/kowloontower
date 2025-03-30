@@ -334,7 +334,7 @@ function cacheGameData() {
         unset($pr['playerID']);
     }
     unset($pr);
-
+/*
     // Add username to rooms based on ownership in players_rooms
     foreach ($data['rooms'] as &$room) {
         $room['username'] = null; // Default to null
@@ -346,6 +346,7 @@ function cacheGameData() {
         }
     }
     unset($room);
+    */
 
     file_put_contents($appCacheFile, json_encode($data));
     writeLog("Cached game data to {$appCacheFile}");

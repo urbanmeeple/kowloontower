@@ -192,10 +192,10 @@ function processBids() {
 
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
 
-    // Remove bids with status "winner" or "loser"
-    $deleteStmt = $pdo->prepare("DELETE FROM bids WHERE status IN ('winner', 'loser')");
+    // Remove bids with status "old_winner" or "old_loser"
+    $deleteStmt = $pdo->prepare("DELETE FROM bids WHERE status IN ('old_winner', 'old_loser')");
     $deleteStmt->execute();
-    writeLog("Removed processed bids with status 'winner' or 'loser'");
+    writeLog("Removed processed bids with status 'old_winner' or 'old_loser'");
 
     // Fetch all planned rooms
     $plannedRoomsStmt = $pdo->query("SELECT roomID FROM rooms WHERE status = 'planned'");
@@ -253,8 +253,8 @@ function processBids() {
                 'roomID' => $roomID
             ]);
 
-            // Mark the winning bid as "winner"
-            $updateWinningBidStmt = $pdo->prepare("UPDATE bids SET status = 'winner' WHERE bidID = :bidID");
+            // Mark the winning bid as "old_winner"
+            $updateWinningBidStmt = $pdo->prepare("UPDATE bids SET status = 'old_winner' WHERE bidID = :bidID");
             $updateWinningBidStmt->execute(['bidID' => $winningBid['bidID']]);
 
             writeLog("Room {$roomID} constructed by player {$winningBid['playerID']} with bid {$winningBid['amount']}");
@@ -273,8 +273,8 @@ function processBids() {
                 'playerID' => $bid['playerID']
             ]);
 
-            // Mark the bid as "loser"
-            $updateLosingBidStmt = $pdo->prepare("UPDATE bids SET status = 'loser' WHERE bidID = :bidID");
+            // Mark the bid as "old_loser"
+            $updateLosingBidStmt = $pdo->prepare("UPDATE bids SET status = 'old_loser' WHERE bidID = :bidID");
             $updateLosingBidStmt->execute(['bidID' => $bid['bidID']]);
 
             $losingBids[] = $bid;

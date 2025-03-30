@@ -2,7 +2,7 @@ import { config } from './config.js.php';
 import { renderGame, resetBrightnessCycle } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
-import { getPlayerState } from './player.js';
+import { getPlayerState, fetchPlayerBids } from './player.js'; // Import function to refresh player bids
 
 /**
  * Fetch updated game state from the server.
@@ -75,7 +75,7 @@ export async function getCacheLastUpdate() {
 /**
  * Update the player HUD and re-render the game
  */
-export function updateGameAndHUD() {
+export async function updateGameAndHUD() {
   try {
     const gameState = getLocalGameState();
     if (!gameState || !gameState.rooms) {
@@ -83,14 +83,17 @@ export function updateGameAndHUD() {
       return;
     }
 
+    // Refresh player's active bids
+    await fetchPlayerBids();
+
     // Get current player state including username
     const playerState = getPlayerState();
     const username = playerState.username;
-    
+
     if (username && gameState.players) {
       // Find the player data by username
       const currentPlayer = gameState.players.find(player => player.username === username);
-      
+
       if (currentPlayer) {
         // Count rooms owned by this player
         let roomCount = 0;
@@ -104,7 +107,7 @@ export function updateGameAndHUD() {
           ...currentPlayer,
           roomCount: roomCount
         };
-        
+
         // Update the HUD
         playerHUD.update(updatedPlayerState);
       }
@@ -112,7 +115,7 @@ export function updateGameAndHUD() {
 
     // Re-render the game using the updated room data
     renderGame(gameState.rooms);
-    
+
     console.log(`Game rendered with ${gameState.rooms ? gameState.rooms.length : 0} rooms`);
   } catch (error) {
     console.error("Error in updateGameAndHUD:", error);

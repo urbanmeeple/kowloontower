@@ -176,6 +176,12 @@ export function renderGame(rooms) {
       gridGroup.add(line);
     }
 
+    // Get the player's username and players_rooms mapping from the local game state
+    const playerState = getPlayerState();
+    const gameState = getLocalGameState();
+    const playerUsername = playerState.username;
+    const playersRooms = gameState.players_rooms || [];
+
     // Draw rooms using the provided rooms data
     rooms.forEach(room => {
       const roomX = room.location_x * config.cellSize + config.cellSize / 2;
@@ -203,11 +209,25 @@ export function renderGame(rooms) {
         });
         iconText.fill = '#FFFFFF';
         gridGroup.add(iconText);
-        
+
+        // Add a star icon in the top-left corner if the room is owned by the player
+        const isOwnedByPlayer = playersRooms.some(pr => pr.roomID === room.roomID && pr.username === playerUsername);
+        if (isOwnedByPlayer) {
+          const starIcon = new Two.Text('⭐', roomX - roomSize / 2.5, roomY - roomSize / 2.5, {
+            size: config.cellSize * 0.4,
+            alignment: 'center',
+            baseline: 'middle',
+            style: 'normal',
+            family: 'Arial'
+          });
+          starIcon.fill = '#FFD700'; // Gold color for the star
+          gridGroup.add(starIcon);
+        }
+
         // Add bid indicator if player has a buy bid on this room
         if (playerBid && playerBid.type === 'buy') {
           // Currency symbol in top-right corner
-          const bidIndicator = new Two.Text('💰', roomX + roomSize/2.5, roomY - roomSize/2.5, {
+          const bidIndicator = new Two.Text('💰', roomX + roomSize / 2.5, roomY - roomSize / 2.5, {
             size: config.cellSize * 0.4,
             alignment: 'center',
             baseline: 'middle',
@@ -235,11 +255,11 @@ export function renderGame(rooms) {
         });
         iconText.fill = 'rgba(255, 255, 255, 0.5)';
         gridGroup.add(iconText);
-        
+
         // Add bid indicator if player has a construct bid on this room
         if (playerBid && playerBid.type === 'construct') {
           // Currency symbol in top-right corner
-          const bidIndicator = new Two.Text('💰', roomX + roomSize/2.5, roomY - roomSize/2.5, {
+          const bidIndicator = new Two.Text('💰', roomX + roomSize / 2.5, roomY - roomSize / 2.5, {
             size: config.cellSize * 0.4,
             alignment: 'center',
             baseline: 'middle',

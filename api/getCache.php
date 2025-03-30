@@ -1,5 +1,6 @@
 <?php
 require_once('../config.php'); // Include config.php to access appCacheFile
+require_once('../utils/logger.php'); // Include centralized logger
 
 header('Content-Type: application/json');
 

@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once('../config.php');
+require_once('../utils/logger.php'); // Include centralized logger
 
 // Check if the cache file exists and return its last modified timestamp
 if (file_exists($appCacheFile)) {

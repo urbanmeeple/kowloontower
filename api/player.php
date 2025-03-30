@@ -1,16 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once('../config.php');
-
-// Define log file path
-$logFile = dirname(__FILE__) . '/../logs/game.log';
-
-// Logging function
-function writeLog($message) {
-    global $logFile;
-    $timestamp = date('Y-m-d H:i:s');
-    file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
-}
+require_once('../utils/logger.php'); // Include centralized logger
 
 // Function to sanitize input to prevent XSS attacks
 function sanitizeInput($data) {

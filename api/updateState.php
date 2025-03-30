@@ -1,25 +1,13 @@
 <?php
 header('Content-Type: application/json');
 require_once('../config.php');
+require_once('../utils/logger.php'); // Include centralized logger
 
-// Define the log file path (make sure the logs directory exists and is writable)
+// Define the cron job log file path
 $logFile = dirname(__FILE__) . '/../logs/cron.log';
 
-// Logging function: Append timestamped messages to the log file and rotate if necessary.
-function writeLog($message) {
-    global $logFile;
-    $timestamp = date('Y-m-d H:i:s');
-    
-    // Rotate log file if it exceeds 5MB
-    if (file_exists($logFile) && filesize($logFile) > 5 * 1024 * 1024) {
-        rename($logFile, $logFile . '.' . time());
-    }
-    
-    file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
-}
-
 // Log the start of the cron job
-writeLog("Cron job started.");
+writeLog("Cron job started.", $logFile);
 
 // Enforce that this script can only be run from the command line (cronjob) or with the correct secret key
 $isCommandLine = (php_sapi_name() === 'cli');
@@ -27,7 +15,7 @@ $hasValidKey = isset($_GET['key']) && $_GET['key'] === $secret_key;
 
 if (!$isCommandLine && !$hasValidKey) {
     $msg = "Unauthorized access attempt. This script can only be run from a cronjob or with proper authorization.";
-    writeLog($msg);
+    writeLog($msg, $logFile);
     http_response_code(403);
     echo json_encode(['error' => $msg]);
     exit;
@@ -36,7 +24,7 @@ if (!$isCommandLine && !$hasValidKey) {
 // Define grid dimensions from centralized config - FIX: use clientConfig instead of config
 $gridWidth = $clientConfig['gridWidth'];
 $gridHeight = $clientConfig['gridHeight'];
-writeLog("Using grid dimensions: width={$gridWidth}, height={$gridHeight}");
+writeLog("Using grid dimensions: width={$gridWidth}, height={$gridHeight}", $logFile);
 
 /**
  * Add new planned rooms to the game
@@ -45,7 +33,7 @@ writeLog("Using grid dimensions: width={$gridWidth}, height={$gridHeight}");
  * @return int Number of planned rooms successfully added
  */
 function addPlannedRooms($numPlannedRooms) {
-    global $pdo, $gridWidth, $gridHeight;
+    global $pdo, $gridWidth, $gridHeight, $logFile;
     
     $addedRooms = 0;
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
@@ -53,7 +41,7 @@ function addPlannedRooms($numPlannedRooms) {
     // Fetch all occupied locations (constructed or planned rooms)
     $occupiedRooms = $pdo->query("SELECT location_x, location_y FROM rooms")->fetchAll();
     $occupiedCount = count($occupiedRooms);
-    writeLog("Found {$occupiedCount} occupied room locations");
+    writeLog("Found {$occupiedCount} occupied room locations", $logFile);
     
     $occupiedCoords = array_map(function($room) {
         return ['x' => $room['location_x'], 'y' => $room['location_y']];
@@ -101,7 +89,7 @@ function addPlannedRooms($numPlannedRooms) {
     }
     
     $validCount = count($validLocations);
-    writeLog("Found {$validCount} valid locations for planned rooms");
+    writeLog("Found {$validCount} valid locations for planned rooms", $logFile);
     
     // Randomly select valid locations for planned rooms
     shuffle($validLocations);
@@ -123,9 +111,9 @@ function addPlannedRooms($numPlannedRooms) {
                 'created_datetime' => $currentUtcDateTime
             ]);
             $addedRooms++;
-            writeLog("Added planned {$sectorType} room at x={$location['x']}, y={$location['y']}");
+            writeLog("Added planned {$sectorType} room at x={$location['x']}, y={$location['y']}", $logFile);
         } catch (PDOException $e) {
-            writeLog("Error adding planned room: " . $e->getMessage());
+            writeLog("Error adding planned room: " . $e->getMessage(), $logFile);
         }
     }
 
@@ -174,38 +162,38 @@ function isAdjacentToConstructed($x, $y, $constructedCoords) {
  * Update room statuses before processing bids.
  */
 function updateRoomStatuses() {
-    global $pdo;
+    global $pdo, $logFile;
 
     // Change all rooms with status "new_constructed" to "old_constructed"
     $updateRoomStatusStmt = $pdo->prepare("UPDATE rooms SET status = 'old_constructed' WHERE status = 'new_constructed'");
     $updateRoomStatusStmt->execute();
-    writeLog("Updated all 'new_constructed' rooms to 'old_constructed'");
+    writeLog("Updated all 'new_constructed' rooms to 'old_constructed'", $logFile);
 }
 
 /**
  * Remove unconstructed planned rooms after processing bids.
  */
 function removeUnconstructedPlannedRooms() {
-    global $pdo;
+    global $pdo, $logFile;
 
     // Delete all planned rooms that were not constructed
     $deletePlannedRoomsStmt = $pdo->prepare("DELETE FROM rooms WHERE status = 'planned'");
     $deletedCount = $deletePlannedRoomsStmt->execute();
-    writeLog("Removed {$deletedCount} unconstructed planned rooms");
+    writeLog("Removed {$deletedCount} unconstructed planned rooms", $logFile);
 }
 
 /**
  * Process bids and convert planned rooms to constructed rooms.
  */
 function processBids() {
-    global $pdo;
+    global $pdo, $logFile;
 
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
 
     // Remove bids with status "old_winner" or "old_loser"
     $deleteStmt = $pdo->prepare("DELETE FROM bids WHERE status IN ('old_winner', 'old_loser')");
     $deleteStmt->execute();
-    writeLog("Removed processed bids with status 'old_winner' or 'old_loser'");
+    writeLog("Removed processed bids with status 'old_winner' or 'old_loser'", $logFile);
 
     // Fetch all planned rooms
     $plannedRoomsStmt = $pdo->query("SELECT roomID FROM rooms WHERE status = 'planned'");
@@ -267,7 +255,7 @@ function processBids() {
             $updateWinningBidStmt = $pdo->prepare("UPDATE bids SET status = 'old_winner' WHERE bidID = :bidID");
             $updateWinningBidStmt->execute(['bidID' => $winningBid['bidID']]);
 
-            writeLog("Room {$roomID} constructed by player {$winningBid['playerID']} with bid {$winningBid['amount']}");
+            writeLog("Room {$roomID} constructed by player {$winningBid['playerID']} with bid {$winningBid['amount']}", $logFile);
         }
 
         // Process losing bids
@@ -290,12 +278,12 @@ function processBids() {
             $losingBids[] = $bid;
         }
 
-        writeLog("Processed bids for room {$roomID}: winner=" . (isset($winningBid['bidID']) ? $winningBid['bidID'] : 'none') . ", losers=" . count($losingBids));
+        writeLog("Processed bids for room {$roomID}: winner=" . (isset($winningBid['bidID']) ? $winningBid['bidID'] : 'none') . ", losers=" . count($losingBids), $logFile);
     }
 }
 
 function cacheGameData() {
-    global $pdo, $appCacheFile;
+    global $pdo, $appCacheFile, $logFile;
     $data = [];
     $playerIDToUsername = [];
 
@@ -365,7 +353,7 @@ function cacheGameData() {
     fwrite($cacheHandle, '}');
     fclose($cacheHandle);
 
-    writeLog("Cached game data to {$appCacheFile}");
+    writeLog("Cached game data to {$appCacheFile}", $logFile);
 }
 
 try {
@@ -373,7 +361,7 @@ try {
     $lockFile = dirname(__FILE__) . '/../temp/updateState.lock';
     $lockHandle = fopen($lockFile, 'w');
     if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
-        writeLog("Cron job already running. Exiting.");
+        writeLog("Cron job already running. Exiting.", $logFile);
         exit;
     }
 
@@ -402,13 +390,13 @@ try {
             VALUES (0, :last_update_datetime)
         ");
         $insertStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]);
-        writeLog("Initialized game_state table with first record");
+        writeLog("Initialized game_state table with first record", $logFile);
     }
 
     // Add new planned rooms
     $numPlannedRooms = 5; // Configurable number of planned rooms
     $plannedRoomsAdded = addPlannedRooms($numPlannedRooms);
-    writeLog("Added {$plannedRoomsAdded} planned rooms");
+    writeLog("Added {$plannedRoomsAdded} planned rooms", $logFile);
 
     // Cache game data
     cacheGameData();
@@ -418,8 +406,8 @@ try {
     $totalRooms = $roomCountStmt->fetch()['total_rooms'];
 
     // Log success with correct variable order
-    writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}");
-    writeLog("Last update time set to: {$currentUtcDateTime} UTC");
+    writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}", $logFile);
+    writeLog("Last update time set to: {$currentUtcDateTime} UTC", $logFile);
     echo json_encode([
         'success' => true, 
         'roomsCreated' => $plannedRoomsAdded,
@@ -427,11 +415,11 @@ try {
         'lastUpdateTime' => $currentUtcDateTime
     ]);
 } catch (PDOException $e) {
-    writeLog("Database error in updateState.php: " . $e->getMessage());
+    writeLog("Database error in updateState.php: " . $e->getMessage(), $logFile);
     http_response_code(500);
     echo json_encode(['error' => 'A database error occurred.']);
 } catch (Exception $e) {
-    writeLog("Error in updateState.php: " . $e->getMessage());
+    writeLog("Error in updateState.php: " . $e->getMessage(), $logFile);
     http_response_code(500);
     echo json_encode(['error' => 'An unexpected error occurred.']);
 } finally {

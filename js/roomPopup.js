@@ -1,6 +1,7 @@
 import { getPlayerState, placeBid, getAvailableMoney, removeBid } from './player.js';
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
+import { isTimerAtZero } from './playerHUD.js'; // Import isTimerAtZero function
 
 class RoomPopup {
     constructor() {
@@ -441,7 +442,7 @@ class RoomPopup {
         }
 
         // Disable bid buttons if the timer is at 0
-        if (playerHUD.remainingTime === 0) {
+        if (isTimerAtZero()) {
             this.disableBidButtons();
         }
 

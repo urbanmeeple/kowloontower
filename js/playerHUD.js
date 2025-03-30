@@ -225,5 +225,6 @@ class PlayerHUD {
   }
 }
 
-// Export the PlayerHUD class for global access
+// Export the PlayerHUD class and isTimerAtZero function for global access
 export const playerHUD = new PlayerHUD(document.body);
+export const isTimerAtZero = () => playerHUD.isTimerAtZero();

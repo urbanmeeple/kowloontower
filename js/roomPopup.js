@@ -95,6 +95,15 @@ class RoomPopup {
     disableBidButtons() {
         const bidButtons = this.popupContainer.querySelectorAll('button:not([id="close-button"])');
         bidButtons.forEach(button => {
+            // Store the original text and color if not already stored
+            if (!button.dataset.originalText) {
+                button.dataset.originalText = button.textContent;
+            }
+            if (!button.dataset.originalColor) {
+                button.dataset.originalColor = button.style.backgroundColor;
+            }
+
+            // Disable the button and set it to grey
             button.disabled = true;
             button.style.backgroundColor = '#9E9E9E'; // Grey color
             button.textContent = 'Bidding Disabled';
@@ -107,9 +116,10 @@ class RoomPopup {
     enableBidButtons() {
         const bidButtons = this.popupContainer.querySelectorAll('button:not([id="close-button"])');
         bidButtons.forEach(button => {
+            // Enable the button and restore its original color and text
             button.disabled = false;
-            button.style.backgroundColor = ''; // Reset to original color
-            button.textContent = button.dataset.originalText || 'Place Bid';
+            button.style.backgroundColor = button.dataset.originalColor || ''; // Restore original color
+            button.textContent = button.dataset.originalText || 'Place Bid'; // Restore original text
         });
     }
 

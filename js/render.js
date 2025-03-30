@@ -213,8 +213,9 @@ export function renderGame(rooms) {
         // Add a star icon in the top-left corner if the room is owned by the player
         const isOwnedByPlayer = playersRooms.some(pr => pr.roomID === room.roomID && pr.username === playerUsername);
         if (isOwnedByPlayer) {
-          const starIcon = new Two.Text('⭐', roomX - roomSize / 2.5, roomY - roomSize / 2.5, {
-            size: config.cellSize * 0.4,
+          const starIconSize = roomSize * 0.3; // Adjust size to fit within the room
+          const starIcon = new Two.Text('⭐', roomX - roomSize / 2 + starIconSize / 2, roomY - roomSize / 2 + starIconSize / 2, {
+            size: starIconSize,
             alignment: 'center',
             baseline: 'middle',
             style: 'normal',
@@ -226,9 +227,9 @@ export function renderGame(rooms) {
 
         // Add bid indicator if player has a buy bid on this room
         if (playerBid && playerBid.type === 'buy') {
-          // Currency symbol in top-right corner
-          const bidIndicator = new Two.Text('💰', roomX + roomSize / 2.5, roomY - roomSize / 2.5, {
-            size: config.cellSize * 0.4,
+          const bidIconSize = roomSize * 0.3; // Adjust size to fit within the room
+          const bidIndicator = new Two.Text('💰', roomX + roomSize / 2 - bidIconSize / 2, roomY - roomSize / 2 + bidIconSize / 2, {
+            size: bidIconSize,
             alignment: 'center',
             baseline: 'middle',
             style: 'normal',
@@ -258,9 +259,9 @@ export function renderGame(rooms) {
 
         // Add bid indicator if player has a construct bid on this room
         if (playerBid && playerBid.type === 'construct') {
-          // Currency symbol in top-right corner
-          const bidIndicator = new Two.Text('💰', roomX + roomSize / 2.5, roomY - roomSize / 2.5, {
-            size: config.cellSize * 0.4,
+          const bidIconSize = roomSize * 0.3; // Adjust size to fit within the room
+          const bidIndicator = new Two.Text('💰', roomX + roomSize / 2 - bidIconSize / 2, roomY - roomSize / 2 + bidIconSize / 2, {
+            size: bidIconSize,
             alignment: 'center',
             baseline: 'middle',
             style: 'normal',

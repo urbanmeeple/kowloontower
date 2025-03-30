@@ -160,6 +160,130 @@ function isAdjacentToConstructed($x, $y, $constructedCoords) {
     return false;
 }
 
+/**
+ * Update room statuses before processing bids.
+ */
+function updateRoomStatuses() {
+    global $pdo;
+
+    // Change all rooms with status "new_constructed" to "old_constructed"
+    $updateRoomStatusStmt = $pdo->prepare("UPDATE rooms SET status = 'old_constructed' WHERE status = 'new_constructed'");
+    $updateRoomStatusStmt->execute();
+    writeLog("Updated all 'new_constructed' rooms to 'old_constructed'");
+}
+
+/**
+ * Remove unconstructed planned rooms after processing bids.
+ */
+function removeUnconstructedPlannedRooms() {
+    global $pdo;
+
+    // Delete all planned rooms that were not constructed
+    $deletePlannedRoomsStmt = $pdo->prepare("DELETE FROM rooms WHERE status = 'planned'");
+    $deletedCount = $deletePlannedRoomsStmt->execute();
+    writeLog("Removed {$deletedCount} unconstructed planned rooms");
+}
+
+/**
+ * Process bids and convert planned rooms to constructed rooms.
+ */
+function processBids() {
+    global $pdo;
+
+    $currentUtcDateTime = gmdate('Y-m-d H:i:s');
+
+    // Remove bids with status "winner" or "loser"
+    $deleteStmt = $pdo->prepare("DELETE FROM bids WHERE status IN ('winner', 'loser')");
+    $deleteStmt->execute();
+    writeLog("Removed processed bids with status 'winner' or 'loser'");
+
+    // Fetch all planned rooms
+    $plannedRoomsStmt = $pdo->query("SELECT roomID FROM rooms WHERE status = 'planned'");
+    $plannedRooms = $plannedRoomsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    foreach ($plannedRooms as $roomID) {
+        // Fetch all "new" bids for the room
+        $bidsStmt = $pdo->prepare("SELECT b.bidID, b.amount, b.playerID, p.money 
+            FROM bids b 
+            JOIN players p ON b.playerID = p.playerID 
+            WHERE b.roomID = :roomID AND b.status = 'new' 
+            ORDER BY b.amount DESC, b.placed_datetime ASC");
+        $bidsStmt->execute(['roomID' => $roomID]);
+        $bids = $bidsStmt->fetchAll();
+
+        if (empty($bids)) {
+            continue; // No bids for this room
+        }
+
+        $winningBid = null;
+        $losingBids = [];
+
+        // Determine the winning bid
+        foreach ($bids as $bid) {
+            if ($bid['money'] >= $bid['amount']) {
+                $winningBid = $bid;
+                break;
+            } else {
+                $losingBids[] = $bid;
+            }
+        }
+
+        if ($winningBid) {
+            // Deduct money from the winning player
+            $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = money - :amount WHERE playerID = :playerID");
+            $updateMoneyStmt->execute([
+                'amount' => $winningBid['amount'],
+                'playerID' => $winningBid['playerID']
+            ]);
+
+            // Update room status to "new_constructed" and assign ownership
+            $updateRoomStmt = $pdo->prepare("UPDATE rooms 
+                SET status = 'new_constructed', created_datetime = :created_datetime 
+                WHERE roomID = :roomID");
+            $updateRoomStmt->execute([
+                'created_datetime' => $currentUtcDateTime,
+                'roomID' => $roomID
+            ]);
+
+            // Add ownership to players_rooms table
+            $insertOwnershipStmt = $pdo->prepare("INSERT INTO players_rooms (playerID, roomID) 
+                VALUES (:playerID, :roomID)");
+            $insertOwnershipStmt->execute([
+                'playerID' => $winningBid['playerID'],
+                'roomID' => $roomID
+            ]);
+
+            // Mark the winning bid as "winner"
+            $updateWinningBidStmt = $pdo->prepare("UPDATE bids SET status = 'winner' WHERE bidID = :bidID");
+            $updateWinningBidStmt->execute(['bidID' => $winningBid['bidID']]);
+
+            writeLog("Room {$roomID} constructed by player {$winningBid['playerID']} with bid {$winningBid['amount']}");
+        }
+
+        // Process losing bids
+        foreach ($bids as $bid) {
+            if ($winningBid && $bid['bidID'] === $winningBid['bidID']) {
+                continue; // Skip the winning bid
+            }
+
+            // Refund money to losing bidders
+            $refundStmt = $pdo->prepare("UPDATE players SET money = money + :amount WHERE playerID = :playerID");
+            $refundStmt->execute([
+                'amount' => $bid['amount'],
+                'playerID' => $bid['playerID']
+            ]);
+
+            // Mark the bid as "loser"
+            $updateLosingBidStmt = $pdo->prepare("UPDATE bids SET status = 'loser' WHERE bidID = :bidID");
+            $updateLosingBidStmt->execute(['bidID' => $bid['bidID']]);
+
+            $losingBids[] = $bid;
+        }
+
+        writeLog("Processed bids for room {$roomID}: winner=" . (isset($winningBid['bidID']) ? $winningBid['bidID'] : 'none') . ", losers=" . count($losingBids));
+    }
+}
+
 function cacheGameData() {
     global $pdo, $appCacheFile;
     // This function caches relevant tables into a JSON file
@@ -222,6 +346,15 @@ try {
         }
     }
     touch($lockFile); // Create or update lock file
+
+    // Update room statuses before processing bids
+    updateRoomStatuses();
+
+    // Process bids and update room statuses
+    processBids();
+
+    // Remove unconstructed planned rooms
+    removeUnconstructedPlannedRooms();
 
     // Get current UTC datetime for updating the game state
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');

@@ -83,7 +83,7 @@ export async function updateGameAndHUD() {
       return;
     }
 
-    // Refresh player's active bids
+    // Refresh player's active bids and wait for completion
     await fetchPlayerBids();
 
     // Get current player state including username
@@ -101,11 +101,12 @@ export async function updateGameAndHUD() {
           roomCount = gameState.players_rooms.filter(pr => pr.username === username).length;
         }
 
-        // Update current player with room count
+        // Update current player with room count and active bids
         const updatedPlayerState = {
           ...playerState,
           ...currentPlayer,
-          roomCount: roomCount
+          roomCount: roomCount,
+          activeBids: playerState.activeBids // Ensure active bids are included
         };
 
         // Update the HUD

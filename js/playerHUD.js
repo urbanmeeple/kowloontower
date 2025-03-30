@@ -151,9 +151,10 @@ class PlayerHUD {
    * @param {number} cronJobInterval - The interval between cron job runs in seconds
    */
   resetTimer(lastCacheTimestamp, cronJobInterval) {
+    const TIMER_OFFSET = 5; // Offset in seconds to start the timer earlier
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
     const elapsedTime = now - lastCacheTimestamp; // Time elapsed since last cache creation
-    this.remainingTime = Math.max(cronJobInterval - elapsedTime, 0); // Calculate remaining time
+    this.remainingTime = Math.max(cronJobInterval - elapsedTime - TIMER_OFFSET, 0); // Adjusted remaining time
     this.cronJobInterval = cronJobInterval; // Store interval for percentage calculations
 
     console.log(`Timer reset: Cache timestamp=${lastCacheTimestamp}, Now=${now}, Elapsed=${elapsedTime}, Remaining=${this.remainingTime}`);
@@ -213,6 +214,14 @@ class PlayerHUD {
     if (this.remainingTime % 5 === 0 || this.remainingTime <= 10) {
       console.log(`Timer update: ${this.remainingTime}s remaining (${Math.round(percentageRemaining * 100)}% of interval)`);
     }
+  }
+
+  /**
+   * Check if the timer is at 0
+   * @returns {boolean} True if the timer is at 0, false otherwise
+   */
+  isTimerAtZero() {
+    return this.remainingTime === 0;
   }
 }
 

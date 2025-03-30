@@ -88,6 +88,30 @@ class RoomPopup {
     }
 
     /**
+     * Disable all bid buttons when the timer is at 0
+     */
+    disableBidButtons() {
+        const bidButtons = this.popupContainer.querySelectorAll('button');
+        bidButtons.forEach(button => {
+            button.disabled = true;
+            button.style.backgroundColor = '#9E9E9E'; // Grey color
+            button.textContent = 'Bidding Disabled';
+        });
+    }
+
+    /**
+     * Enable all bid buttons after the timer resets
+     */
+    enableBidButtons() {
+        const bidButtons = this.popupContainer.querySelectorAll('button');
+        bidButtons.forEach(button => {
+            button.disabled = false;
+            button.style.backgroundColor = ''; // Reset to original color
+            button.textContent = button.dataset.originalText || 'Place Bid';
+        });
+    }
+
+    /**
      * Create a bidding interface with a slider for entering bid amount
      * @param {string} type - Type of bid ('construct' or 'buy')
      * @param {Object} roomData - Data about the room being bid on
@@ -414,6 +438,11 @@ class RoomPopup {
             // Add bid to construct interface
             const constructBidInterface = this.createBidInterface('construct', roomData);
             this.popupContainer.appendChild(constructBidInterface);
+        }
+
+        // Disable bid buttons if the timer is at 0
+        if (playerHUD.remainingTime === 0) {
+            this.disableBidButtons();
         }
 
         this.popupContainer.style.display = 'block';

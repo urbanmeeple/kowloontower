@@ -3,6 +3,7 @@ import { renderGame, resetBrightnessCycle } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
 import { getPlayerState, fetchPlayerBids } from './player.js'; // Import function to refresh player bids
+import { roomPopup } from './roomPopup.js'; // Ensure roomPopup is imported
 
 /**
  * Fetch updated game state from the server.
@@ -133,8 +134,8 @@ export async function startAutoUpdates() {
     // Try to fetch cache status immediately
     await checkAndFetchCache();
     
-    // Set up the periodic polling every 10 seconds (or use config value)
-    const UPDATE_INTERVAL = config.updateInterval || 10000;
+    // Set up the periodic polling every autoUpdatePollingInterval (for example every 10 sec)
+    const UPDATE_INTERVAL = config.autoUpdatePollingInterval;
     setInterval(checkAndFetchCache, UPDATE_INTERVAL);
     
     console.log(`Auto-updates scheduled every ${UPDATE_INTERVAL}ms`);
@@ -163,8 +164,10 @@ async function checkAndFetchCache() {
       console.log("Cache is newer than last known version. Fetching updates...");
       localStorage.setItem(config.player.cacheTimestampKey, data.lastCacheUpdate.toString());
       await fetchUpdatedGameState();
-      
-      // Reset has already been done in fetchUpdatedGameState
+
+      // Reset bid buttons after the update
+      roomPopup.enableBidButtons();
+
     } else {
       console.log("Cache is current, no update needed");
       

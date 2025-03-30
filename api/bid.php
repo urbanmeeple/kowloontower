@@ -77,7 +77,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['playerID'])) {
 }
 // Handle POST request - Create or update a bid
 else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get JSON data from request body
+        // Get JSON data from request body
     $data = json_decode(file_get_contents('php://input'), true);
     
     // Validate required fields

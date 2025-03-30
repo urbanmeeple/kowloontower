@@ -47,6 +47,7 @@ class RoomPopup {
         // Create close button
         this.closeButton = document.createElement('button');
         this.closeButton.textContent = 'Close';
+        this.closeButton.id = 'close-button'; // Add ID for close button
         Object.assign(this.closeButton.style, {
             position: 'absolute',
             top: '8px', // Reduced spacing
@@ -89,10 +90,10 @@ class RoomPopup {
     }
 
     /**
-     * Disable all bid buttons when the timer is at 0
+     * Disable all bid buttons except the close button when the timer is at 0
      */
     disableBidButtons() {
-        const bidButtons = this.popupContainer.querySelectorAll('button');
+        const bidButtons = this.popupContainer.querySelectorAll('button:not([id="close-button"])');
         bidButtons.forEach(button => {
             button.disabled = true;
             button.style.backgroundColor = '#9E9E9E'; // Grey color
@@ -101,15 +102,26 @@ class RoomPopup {
     }
 
     /**
-     * Enable all bid buttons after the timer resets
+     * Enable all bid buttons except the close button after the timer resets
      */
     enableBidButtons() {
-        const bidButtons = this.popupContainer.querySelectorAll('button');
+        const bidButtons = this.popupContainer.querySelectorAll('button:not([id="close-button"])');
         bidButtons.forEach(button => {
             button.disabled = false;
             button.style.backgroundColor = ''; // Reset to original color
             button.textContent = button.dataset.originalText || 'Place Bid';
         });
+    }
+
+    /**
+     * Update the popup buttons dynamically based on the timer state
+     */
+    updatePopupButtons() {
+        if (isTimerAtZero()) {
+            this.disableBidButtons();
+        } else {
+            this.enableBidButtons();
+        }
     }
 
     /**
@@ -441,10 +453,8 @@ class RoomPopup {
             this.popupContainer.appendChild(constructBidInterface);
         }
 
-        // Disable bid buttons if the timer is at 0
-        if (isTimerAtZero()) {
-            this.disableBidButtons();
-        }
+        // Update popup buttons based on the timer state
+        this.updatePopupButtons();
 
         this.popupContainer.style.display = 'block';
     }

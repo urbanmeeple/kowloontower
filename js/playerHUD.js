@@ -1,3 +1,7 @@
+import { renderGame } from './render.js';
+import { getLocalGameState } from './state.js';
+import { roomPopup } from './roomPopup.js'; // Import roomPopup to update buttons
+
 /**
  * Player HUD Component
  * Manages the player information display at the top of the screen
@@ -174,6 +178,8 @@ class PlayerHUD {
         this.updateTimerDisplay();
       } else {
         clearInterval(this.timerInterval); // Stop the timer when it reaches 0
+        renderGame(getLocalGameState().rooms); // Re-render the game
+        roomPopup.updatePopupButtons(); // Update popup buttons when timer reaches 0
       }
     }, 1000);
   }

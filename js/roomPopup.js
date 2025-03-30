@@ -388,23 +388,23 @@ class RoomPopup {
                 this.popupContainer.appendChild(ownerInfo);
             }
 
-            // Maintenance level
-            const maintenance = document.createElement('p');
-            maintenance.textContent = `Maintenance Level: ${roomData.maintenance_level}`;
-            maintenance.style.marginBottom = '10px';
-            this.popupContainer.appendChild(maintenance);
+            // Wear level
+            const wear = document.createElement('p');
+            wear.textContent = `Wear Level: ${roomData.wear}`;
+            wear.style.marginBottom = '10px';
+            this.popupContainer.appendChild(wear);
 
-            // Pay maintenance button
-            const payMaintenanceButton = document.createElement('button');
-            payMaintenanceButton.textContent = 'Pay Maintenance';
-            payMaintenanceButton.style.backgroundColor = '#4CAF50';
-            payMaintenanceButton.style.color = 'white';
-            payMaintenanceButton.style.border = 'none';
-            payMaintenanceButton.style.padding = '8px 16px';
-            payMaintenanceButton.style.borderRadius = '5px';
-            payMaintenanceButton.style.cursor = 'pointer';
-            payMaintenanceButton.style.fontSize = '14px';
-            this.popupContainer.appendChild(payMaintenanceButton);
+            // Renovate button
+            const renovateButton = document.createElement('button');
+            renovateButton.textContent = 'Renovate';
+            renovateButton.style.backgroundColor = '#4CAF50';
+            renovateButton.style.color = 'white';
+            renovateButton.style.border = 'none';
+            renovateButton.style.padding = '8px 16px';
+            renovateButton.style.borderRadius = '5px';
+            renovateButton.style.cursor = 'pointer';
+            renovateButton.style.fontSize = '14px';
+            this.popupContainer.appendChild(renovateButton);
 
             // Add bid to buy interface
             const buyBidInterface = this.createBidInterface('buy', roomData);

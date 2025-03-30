@@ -105,9 +105,9 @@ function addPlannedRooms($numPlannedRooms) {
         $sectorType = $sectorTypes[array_rand($sectorTypes)];
         $insertStmt = $pdo->prepare("
             INSERT INTO rooms 
-            (sector_type, location_x, location_y, maintenance_level, status, created_datetime) 
+            (sector_type, location_x, location_y, wear, status, created_datetime) 
             VALUES 
-            (:sector_type, :location_x, :location_y, 1.0, 'planned', :created_datetime)
+            (:sector_type, :location_x, :location_y, 0, 'planned', :created_datetime)
         ");
         try {
             $insertStmt->execute([
@@ -242,7 +242,7 @@ function processBids() {
 
             // Update room status to "new_constructed" and assign ownership
             $updateRoomStmt = $pdo->prepare("UPDATE rooms 
-                SET status = 'new_constructed', created_datetime = :created_datetime 
+                SET status = 'new_constructed', created_datetime = :created_datetime, wear = 0 
                 WHERE roomID = :roomID");
             $updateRoomStmt->execute([
                 'created_datetime' => $currentUtcDateTime,
@@ -334,20 +334,6 @@ function cacheGameData() {
         unset($pr['playerID']);
     }
     unset($pr);
-/*
-    // Add username to rooms based on ownership in players_rooms
-    foreach ($data['rooms'] as &$room) {
-        $room['username'] = null; // Default to null
-        foreach ($data['players_rooms'] as $pr) {
-            if ($pr['roomID'] === $room['roomID']) {
-                $room['username'] = $pr['username'];
-                break;
-            }
-        }
-    }
-    unset($room);
-    */
-
     file_put_contents($appCacheFile, json_encode($data));
     writeLog("Cached game data to {$appCacheFile}");
 }

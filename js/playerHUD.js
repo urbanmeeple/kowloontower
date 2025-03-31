@@ -122,7 +122,19 @@ class PlayerHUD {
     technicalStock.textContent = playerData.stock_technical;
 
     // Update room count
-    document.getElementById('player-rooms').textContent = playerData.roomCount || 0;
+    const gameState = getLocalGameState();
+    if (gameState && gameState.players_rooms) {
+      const ownedRooms = gameState.players_rooms.filter(
+        pr => pr.username === playerData.username && 
+              gameState.rooms.some(
+                room => room.roomID === pr.roomID && 
+                        (room.status === 'new_constructed' || room.status === 'old_constructed')
+              )
+      );
+      document.getElementById('player-rooms').textContent = ownedRooms.length;
+    } else {
+      document.getElementById('player-rooms').textContent = 0;
+    }
 
     // Update active bids information
     if (playerData.activeBids) {

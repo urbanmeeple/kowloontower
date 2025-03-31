@@ -371,10 +371,16 @@ function updatePlayerRentIncome() {
 
     foreach ($playerRents as $playerRent) {
         try {
+            // Validate total_rent
+            if (!is_numeric($playerRent['total_rent'])) {
+                writeLog("Invalid total_rent for playerID={$playerRent['playerID']}: total_rent={$playerRent['total_rent']}", $logFile);
+                continue; // Skip invalid entries
+            }
+
             // Ensure all placeholders are correctly bound
             $updatePlayerStmt->execute([
-                ':rent' => $playerRent['total_rent'], // Bind total_rent
-                ':playerID' => $playerRent['playerID'] // Bind playerID
+                ':rent' => (int)$playerRent['total_rent'], // Cast total_rent to integer
+                ':playerID' => $playerRent['playerID'] // Use playerID as a string
             ]);
             writeLog("Updated rent income for player {$playerRent['playerID']} to {$playerRent['total_rent']} and added to their money", $logFile);
         } catch (PDOException $e) {

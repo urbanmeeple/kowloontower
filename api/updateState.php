@@ -482,6 +482,82 @@ function updateInvestmentDividends() {
 }
 
 /**
+ * Calculate and update dividend payments for each player based on their stock holdings
+ * Also adds the dividend income to player's money balance
+ */
+function updatePlayerDividends() {
+    global $pdo, $logFile;
+    
+    // Dividend factor - higher value means lower dividend per stock
+    $dividendFactor = 30;
+    
+    // Log start of dividend calculation
+    writeLog("Starting calculation of player dividends", $logFile);
+    
+    // First, fetch all average cashflows per room for each sector from investments table
+    $sectorDividendsStmt = $pdo->query("SELECT sector_type, average_cashflow_per_room FROM investments");
+    $sectorDividends = [];
+    
+    while ($row = $sectorDividendsStmt->fetch(PDO::FETCH_ASSOC)) {
+        $sectorDividends[$row['sector_type']] = $row['average_cashflow_per_room'];
+    }
+    
+    // Get all players
+    $playersStmt = $pdo->query("SELECT playerID, 
+                                stock_housing, 
+                                stock_entertainment, 
+                                stock_weapons, 
+                                stock_food, 
+                                stock_technical 
+                                FROM players");
+    
+    $totalPlayersUpdated = 0;
+    
+    // Process each player
+    while ($player = $playersStmt->fetch(PDO::FETCH_ASSOC)) {
+        $playerID = $player['playerID'];
+        $totalDividends = 0;
+        
+        // Calculate dividends for each stock type
+        $stockTypes = [
+            'housing', 
+            'entertainment', 
+            'weapons', 
+            'food', 
+            'technical'
+        ];
+        
+        foreach ($stockTypes as $type) {
+            $stockCount = $player["stock_$type"];
+            $avgCashflow = $sectorDividends[$type] ?? 0; // Default to 0 if not found
+            
+            // Calculate dividend for this stock type
+            $dividend = ($stockCount * $avgCashflow) / $dividendFactor;
+            $totalDividends += $dividend;
+        }
+        
+        // Round to integer since the dividends column is INT
+        $totalDividends = (int)round($totalDividends);
+        
+        // Update player's dividends and add to money balance
+        $updateStmt = $pdo->prepare("UPDATE players SET 
+                                    dividends = :dividends, 
+                                    money = money + :dividends 
+                                    WHERE playerID = :playerID");
+                                    
+        $updateStmt->execute([
+            'dividends' => $totalDividends,
+            'playerID' => $playerID
+        ]);
+        
+        $totalPlayersUpdated++;
+        writeLog("Updated dividends for player {$playerID} to {$totalDividends} and added to money balance", $logFile);
+    }
+    
+    writeLog("Completed dividend payments for {$totalPlayersUpdated} players", $logFile);
+}
+
+/**
  * Increase wear for all constructed rooms
  * Wear is increased by a random amount within +/- 50% of base wear increase
  * Rooms that reach maximum wear (1.0) are marked as destroyed
@@ -672,6 +748,9 @@ try {
 
     // Update investment dividends information
     updateInvestmentDividends();
+    
+    // Update player dividends based on stock holdings
+    updatePlayerDividends();
 
     // Remove unconstructed planned rooms
     removeUnconstructedPlannedRooms();

@@ -612,7 +612,7 @@ function increaseRoomWear() {
             $destroyAboveStmt = $pdo->prepare("
                 UPDATE rooms 
                 SET status = 'destroyed' 
-                WHERE location_x = :x AND location_y > :y AND status IN ('new_constructed', 'old_constructed')
+                WHERE location_x = :x AND location_y < :y AND status IN ('new_constructed', 'old_constructed')
             ");
             $destroyAboveStmt->execute(['x' => $x, 'y' => $y]);
             

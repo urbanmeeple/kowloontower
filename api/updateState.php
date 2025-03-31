@@ -343,6 +343,45 @@ function calculateAndUpdateRoomRent() {
     }
 }
 
+/**
+ * Calculate and update total rent income for each player based on their owned rooms
+ */
+function updatePlayerRents() {
+    global $pdo, $logFile;
+
+    // Get all players
+    $playersStmt = $pdo->query("SELECT playerID FROM players");
+    $players = $playersStmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    $totalPlayersUpdated = 0;
+
+    foreach ($players as $playerID) {
+        // Get total rent from all constructed rooms owned by this player
+        $totalRentStmt = $pdo->prepare("
+            SELECT SUM(r.room_rent) as total_rent
+            FROM rooms r
+            JOIN players_rooms pr ON r.roomID = pr.roomID
+            WHERE pr.playerID = :playerID
+            AND r.status IN ('new_constructed', 'old_constructed')
+        ");
+        $totalRentStmt->execute(['playerID' => $playerID]);
+        $result = $totalRentStmt->fetch();
+        $totalRent = $result['total_rent'] ?: 0; // Default to 0 if null
+
+        // Update player's rent parameter
+        $updatePlayerStmt = $pdo->prepare("UPDATE players SET rent = :rent WHERE playerID = :playerID");
+        $updatePlayerStmt->execute([
+            'rent' => $totalRent,
+            'playerID' => $playerID
+        ]);
+
+        $totalPlayersUpdated++;
+        writeLog("Updated rent income for player {$playerID} to {$totalRent}", $logFile);
+    }
+
+    writeLog("Updated rent income for {$totalPlayersUpdated} players", $logFile);
+}
+
 function cacheGameData() {
     global $pdo, $appCacheFile, $logFile;
     $data = [];
@@ -461,6 +500,9 @@ try {
 
     // Calculate and update room rent
     calculateAndUpdateRoomRent();
+    
+    // Update players' rent income from owned rooms
+    updatePlayerRents();
 
     // Remove unconstructed planned rooms
     removeUnconstructedPlannedRooms();

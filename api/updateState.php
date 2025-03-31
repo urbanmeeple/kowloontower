@@ -568,7 +568,7 @@ function updatePlayerDividends() {
 function increaseRoomWear() {
     global $pdo, $logFile;
     
-    $baseWearIncrease = 0.02; // Base wear increase per update
+    $baseWearIncrease = 0.2; // Base wear increase per update, standard is 0.02
     $minFactor = 0.5; // -50% of base
     $maxFactor = 1.5; // +50% of base
     $wearLimit = 1.0; // Maximum wear value allowed

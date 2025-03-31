@@ -539,14 +539,17 @@ function updatePlayerDividends() {
         // Round to integer since the dividends column is INT
         $totalDividends = (int)round($totalDividends);
         
-        // Update player's dividends and add to money balance
-        $updateStmt = $pdo->prepare("UPDATE players SET 
-                                    dividends = :dividends, 
-                                    money = money + :dividends 
-                                    WHERE playerID = :playerID");
-                                    
-        $updateStmt->execute([
+        // Update player's dividends - FIRST STATEMENT
+        $updateDividendsStmt = $pdo->prepare("UPDATE players SET dividends = :dividends WHERE playerID = :playerID");
+        $updateDividendsStmt->execute([
             'dividends' => $totalDividends,
+            'playerID' => $playerID
+        ]);
+        
+        // Update player's money balance - SECOND STATEMENT
+        $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = money + :amount WHERE playerID = :playerID");
+        $updateMoneyStmt->execute([
+            'amount' => $totalDividends,
             'playerID' => $playerID
         ]);
         

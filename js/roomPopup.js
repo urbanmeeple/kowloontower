@@ -467,6 +467,12 @@ class RoomPopup {
             wear.style.marginBottom = '10px';
             this.popupContainer.appendChild(wear);
 
+            // Room rent
+            const roomRent = document.createElement('p');
+            roomRent.textContent = `Room Rent: ${this.formatMoney(roomData.room_rent)}`;
+            roomRent.style.marginBottom = '10px';
+            this.popupContainer.appendChild(roomRent);
+
             // Renovate button
             this.renovateButton = document.createElement('button');
             this.renovateButton.textContent = 'Renovate';

@@ -282,6 +282,67 @@ function processBids() {
     }
 }
 
+/**
+ * Calculate and update room rent for all constructed rooms.
+ */
+function calculateAndUpdateRoomRent() {
+    global $pdo, $logFile;
+
+    $baseValue = 1000; // Base value for rent calculation
+    $minRentPercentage = 0.25; // Minimum rent as a percentage of base value
+
+    // Fetch all constructed rooms
+    $roomsStmt = $pdo->query("SELECT roomID, sector_type, location_x, location_y, wear FROM rooms WHERE status IN ('new_constructed', 'old_constructed')");
+    $rooms = $roomsStmt->fetchAll();
+
+    foreach ($rooms as $room) {
+        $roomID = $room['roomID'];
+        $sectorType = $room['sector_type'];
+        $x = $room['location_x'];
+        $y = $room['location_y'];
+        $wear = $room['wear'];
+
+        // Fetch nearby rooms within 2 cells
+        $nearbyRoomsStmt = $pdo->prepare("
+            SELECT sector_type, location_x, location_y 
+            FROM rooms 
+            WHERE ABS(location_x - :x) <= 2 AND ABS(location_y - :y) <= 2 AND status IN ('new_constructed', 'old_constructed')
+        ");
+        $nearbyRoomsStmt->execute(['x' => $x, 'y' => $y]);
+        $nearbyRooms = $nearbyRoomsStmt->fetchAll();
+
+        // Calculate rent based on sector type
+        $roomRent = 0;
+        $valueFromNearness = max(1, count(array_unique(array_column($nearbyRooms, 'sector_type'))));
+        $valueFromNearnessExclTechnical = max(1, count(array_unique(array_filter(array_column($nearbyRooms, 'sector_type'), fn($type) => $type !== 'technical'))));
+        $freeEdges = 4 - count(array_filter($nearbyRooms, fn($r) => abs($r['location_x'] - $x) + abs($r['location_y'] - $y) === 1));
+        $nearnessToTechnical = min(3, count(array_filter($nearbyRooms, fn($r) => $r['sector_type'] === 'technical')));
+
+        switch ($sectorType) {
+            case 'food':
+            case 'entertainment':
+            case 'weapons':
+                $roomRent = $baseValue * ($valueFromNearness - $wear);
+                break;
+
+            case 'housing':
+                $roomRent = $baseValue * ($valueFromNearnessExclTechnical + $freeEdges - $wear - $nearnessToTechnical);
+                $roomRent = max($roomRent, $baseValue * $minRentPercentage); // Ensure minimum rent
+                break;
+
+            case 'technical':
+                $roomRent = $baseValue * ($valueFromNearness - $wear);
+                break;
+        }
+
+        // Update room_rent in the database
+        $updateRentStmt = $pdo->prepare("UPDATE rooms SET room_rent = :room_rent WHERE roomID = :roomID");
+        $updateRentStmt->execute(['room_rent' => max(0, $roomRent), 'roomID' => $roomID]);
+
+        writeLog("Updated rent for room {$roomID} (sector: {$sectorType}) to {$roomRent}", $logFile);
+    }
+}
+
 function cacheGameData() {
     global $pdo, $appCacheFile, $logFile;
     $data = [];
@@ -370,6 +431,9 @@ try {
 
     // Process bids and update room statuses
     processBids();
+
+    // Calculate and update room rent
+    calculateAndUpdateRoomRent();
 
     // Remove unconstructed planned rooms
     removeUnconstructedPlannedRooms();

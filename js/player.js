@@ -7,6 +7,8 @@ let playerState = {
     playerID: null,
     username: '',
     money: 0,
+    rent: 0,            // Add rent field
+    dividends: 0,       // Add dividends field
     roomCount: 0,
     isNewPlayer: false,
     stock_housing: 0,
@@ -253,6 +255,8 @@ export async function fetchPlayerData(playerID) {
             playerState = {
                 ...playerState,
                 ...data.player,
+                rent: data.player.rent || 0,           // Ensure rent is set
+                dividends: data.player.dividends || 0, // Ensure dividends is set
                 isNewPlayer: false,
                 activeBids: playerState.activeBids || [] // Preserve active bids if they exist
             };
@@ -293,6 +297,8 @@ export async function createNewPlayer() {
             playerState = {
                 ...playerState,
                 ...data.player,
+                rent: data.player.rent || 0,           // Ensure rent is set
+                dividends: data.player.dividends || 0, // Ensure dividends is set
                 roomCount: 0,
                 isNewPlayer: true
             };

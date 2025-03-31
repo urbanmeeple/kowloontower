@@ -94,8 +94,10 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Generate a unique username
         $username = generateUniqueUsername();
         
-        // Starting money
+        // Starting money and income
         $startingMoney = 100000;
+        $startingRent = 0;       // Default rent for new players
+        $startingDividends = 0;  // Default dividends for new players
         
         // Distribute 100 stocks randomly among the five sectors
         $totalStocks = 100;
@@ -123,15 +125,17 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Insert the new player
         $stmt = $pdo->prepare("
             INSERT INTO players 
-            (playerID, username, money, stock_housing, stock_entertainment, stock_weapons, stock_food, stock_technical, created_datetime, active_datetime) 
+            (playerID, username, money, rent, dividends, stock_housing, stock_entertainment, stock_weapons, stock_food, stock_technical, created_datetime, active_datetime) 
             VALUES 
-            (:playerID, :username, :money, :stock_housing, :stock_entertainment, :stock_weapons, :stock_food, :stock_technical, :created_datetime, :active_datetime)
+            (:playerID, :username, :money, :rent, :dividends, :stock_housing, :stock_entertainment, :stock_weapons, :stock_food, :stock_technical, :created_datetime, :active_datetime)
         ");
         
         $stmt->execute([
             'playerID' => $playerID,
             'username' => $username,
             'money' => $startingMoney,
+            'rent' => $startingRent,
+            'dividends' => $startingDividends,
             'stock_housing' => $stock_housing,
             'stock_entertainment' => $stock_entertainment,
             'stock_weapons' => $stock_weapons,
@@ -140,9 +144,6 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'created_datetime' => $currentUtcDateTime,
             'active_datetime' => $currentUtcDateTime
         ]);
-        
-        // Get the newly created player ID
-        $newPlayerID = $pdo->lastInsertId();
         
         // Fetch the complete player record to return
         $stmt = $pdo->prepare("SELECT * FROM players WHERE playerID = :playerID");

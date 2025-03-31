@@ -207,7 +207,7 @@ export function renderGame(rooms) {
         // Determine border color and width based on wear level
         const highWear = room.wear >= 0.9;
         roomRect.stroke = highWear ? '#FF0000' : '#000000'; // Red border for high wear
-        roomRect.linewidth = highWear ? 3 : 2; // Slightly thicker border for high wear
+        roomRect.linewidth = 2; // Same border width for all rooms
         
         gridGroup.add(roomRect);
 

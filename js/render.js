@@ -85,15 +85,22 @@ export function updateGridOffset(twoInstance) {
 export function renderBackground() {
   try {
     backgroundTwo.clear();
-    // Adjust brightness using a helper (here we simply use top color; you may enhance this)
-    const bgColor = adjustBrightness(config.colors.background.top, config.colors.background.brightness);
+
+    // Create a gradient from dark blue to light blue
+    const gradient = backgroundTwo.makeLinearGradient(
+      0, 0, // Start at the top
+      0, backgroundTwo.height, // End at the bottom
+      new Two.Stop(0, '#87CEEB'), // Light blue at the top
+      new Two.Stop(1, '#00008B')  // Dark blue at the bottom
+    );
+
     const bgRect = backgroundTwo.makeRectangle(
       backgroundTwo.width / 2,
       backgroundTwo.height / 2,
       backgroundTwo.width,
       backgroundTwo.height
     );
-    bgRect.fill = bgColor;
+    bgRect.fill = gradient; // Apply the gradient as the fill
     bgRect.noStroke();
     backgroundTwo.update();
   } catch (error) {

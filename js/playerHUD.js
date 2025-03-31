@@ -40,6 +40,13 @@ class PlayerHUD {
     const moneySection = document.createElement('div');
     moneySection.className = 'hud-section money-section';
 
+    // Add new income sections
+    const rentSection = document.createElement('div');
+    rentSection.className = 'hud-section rent-section';
+
+    const dividendsSection = document.createElement('div');
+    dividendsSection.className = 'hud-section dividends-section';
+
     const stocksSection = document.createElement('div');
     stocksSection.className = 'hud-section stocks-section';
 
@@ -58,6 +65,10 @@ class PlayerHUD {
     usernameSection.innerHTML = '<span class="label">Player:</span> <span id="player-username">Loading...</span>';
 
     moneySection.innerHTML = '<span class="label">Money:</span> <span id="player-money">0</span>';
+    
+    // Create rent and dividend displays
+    rentSection.innerHTML = '<span class="label">Rent:</span> <span id="player-rent">$0</span>';
+    dividendsSection.innerHTML = '<span class="label">Dividends:</span> <span id="player-dividends">$0</span>';
 
     // Create stock displays with individual sectors
     stocksSection.innerHTML = `
@@ -80,6 +91,8 @@ class PlayerHUD {
     // Add sections to HUD
     this.element.appendChild(usernameSection);
     this.element.appendChild(moneySection);
+    this.element.appendChild(rentSection);
+    this.element.appendChild(dividendsSection);
     this.element.appendChild(stocksSection);
     this.element.appendChild(roomsSection);
     this.element.appendChild(bidsSection);
@@ -107,6 +120,10 @@ class PlayerHUD {
     // Update DOM elements with new data
     document.getElementById('player-username').textContent = playerData.username;
     document.getElementById('player-money').textContent = this.formatMoney(playerData.money);
+    
+    // Update rent and dividends data
+    document.getElementById('player-rent').textContent = this.formatMoney(playerData.rent || 0);
+    document.getElementById('player-dividends').textContent = this.formatMoney(playerData.dividends || 0);
 
     // Update stock values
     const housingStock = document.querySelector('#stock-housing span');

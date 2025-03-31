@@ -92,7 +92,7 @@ export function renderBackground() {
     const gradient = backgroundTwo.makeLinearGradient(
       0, 0, // Start at the top
       0, backgroundTwo.height, // End at the bottom
-      new Two.Stop(0, config.colors.background.top), // Light blue at the top
+      new Two.Stop(0, bgColor), // Light blue at the top
       new Two.Stop(1, config.colors.background.bottom)  // Dark blue at the bottom
     );
 

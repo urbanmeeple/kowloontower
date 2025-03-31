@@ -337,15 +337,17 @@ function calculateAndUpdateRoomRent() {
 
         // Update room_rent in the database
         $updateRentStmt = $pdo->prepare("UPDATE rooms SET room_rent = :room_rent WHERE roomID = :roomID");
-        $updateRentStmt->execute(['room_rent' => max(0, $roomRent), 'roomID' => $roomID]);
+        $updateRentStmt->execute([
+            'room_rent' => max(0, $roomRent), // Ensure rent is non-negative
+            'roomID' => $roomID // Bind roomID correctly
+        ]);
 
         writeLog("Updated rent for room {$roomID} (sector: {$sectorType}) to {$roomRent}", $logFile);
     }
 }
 
 /**
- * Calculate and update each player's total rent income from all constructed rooms they own,
- * and add the rent to the player's money.
+ * Update player rent income and add it to their money.
  */
 function updatePlayerRentIncome() {
     global $pdo, $logFile;
@@ -369,8 +371,8 @@ function updatePlayerRentIncome() {
 
     foreach ($playerRents as $playerRent) {
         $updatePlayerStmt->execute([
-            'rent' => $playerRent['total_rent'],
-            'playerID' => $playerRent['playerID']
+            'rent' => $playerRent['total_rent'], // Bind total_rent
+            'playerID' => $playerRent['playerID'] // Bind playerID
         ]);
         writeLog("Updated rent income for player {$playerRent['playerID']} to {$playerRent['total_rent']} and added to their money", $logFile);
     }
@@ -498,52 +500,111 @@ try {
     }
 
     // Update room statuses before processing bids
-    updateRoomStatuses();
+    try {
+        writeLog("Calling updateRoomStatuses()", $logFile);
+        updateRoomStatuses();
+        writeLog("updateRoomStatuses() completed successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in updateRoomStatuses(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Process bids and update room statuses
-    processBids();
+    try {
+        writeLog("Calling processBids()", $logFile);
+        processBids();
+        writeLog("processBids() completed successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in processBids(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Calculate and update room rent
-    calculateAndUpdateRoomRent();
+    try {
+        writeLog("Calling calculateAndUpdateRoomRent()", $logFile);
+        calculateAndUpdateRoomRent();
+        writeLog("calculateAndUpdateRoomRent() completed successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in calculateAndUpdateRoomRent(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Update player rent income and add it to their money
-    updatePlayerRentIncome();
+    try {
+        writeLog("Calling updatePlayerRentIncome()", $logFile);
+        updatePlayerRentIncome();
+        writeLog("updatePlayerRentIncome() completed successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in updatePlayerRentIncome(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Remove unconstructed planned rooms
-    removeUnconstructedPlannedRooms();
+    try {
+        writeLog("Calling removeUnconstructedPlannedRooms()", $logFile);
+        removeUnconstructedPlannedRooms();
+        writeLog("removeUnconstructedPlannedRooms() completed successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in removeUnconstructedPlannedRooms(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Get current UTC datetime for updating the game state
     $currentUtcDateTime = gmdate('Y-m-d H:i:s');
-    
+
     // Update the last_update_datetime in the game_state table
-    $updateStateStmt = $pdo->prepare("
-        UPDATE game_state SET last_update_datetime = :last_update_datetime
-        WHERE 1
-    ");
-    
-    // If no rows were affected, it means we need to insert a new row
-    if ($updateStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]) && $updateStateStmt->rowCount() === 0) {
-        $insertStateStmt = $pdo->prepare("
-            INSERT INTO game_state (game_time, last_update_datetime) 
-            VALUES (0, :last_update_datetime)
+    try {
+        writeLog("Updating game_state table with last_update_datetime", $logFile);
+        $updateStateStmt = $pdo->prepare("
+            UPDATE game_state SET last_update_datetime = :last_update_datetime
+            WHERE 1
         ");
-        $insertStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]);
-        writeLog("Initialized game_state table with first record", $logFile);
+        if ($updateStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]) && $updateStateStmt->rowCount() === 0) {
+            $insertStateStmt = $pdo->prepare("
+                INSERT INTO game_state (game_time, last_update_datetime) 
+                VALUES (0, :last_update_datetime)
+            ");
+            $insertStateStmt->execute(['last_update_datetime' => $currentUtcDateTime]);
+            writeLog("Initialized game_state table with first record", $logFile);
+        }
+        writeLog("Updated game_state table successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error updating game_state table: " . $e->getMessage(), $logFile);
+        throw $e;
     }
 
     // Add new planned rooms
-    $numPlannedRooms = 5; // Configurable number of planned rooms
-    $plannedRoomsAdded = addPlannedRooms($numPlannedRooms);
-    writeLog("Added {$plannedRoomsAdded} planned rooms", $logFile);
+    try {
+        $numPlannedRooms = 5; // Configurable number of planned rooms
+        writeLog("Calling addPlannedRooms() with numPlannedRooms={$numPlannedRooms}", $logFile);
+        $plannedRoomsAdded = addPlannedRooms($numPlannedRooms);
+        writeLog("addPlannedRooms() completed successfully. {$plannedRoomsAdded} planned rooms added.", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in addPlannedRooms(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Cache game data
-    cacheGameData();
+    try {
+        writeLog("Calling cacheGameData()", $logFile);
+        cacheGameData();
+        writeLog("cacheGameData() completed successfully", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error in cacheGameData(): " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
     // Count all rooms for logging
-    $roomCountStmt = $pdo->query("SELECT COUNT(*) as total_rooms FROM rooms");
-    $totalRooms = $roomCountStmt->fetch()['total_rooms'];
+    try {
+        $roomCountStmt = $pdo->query("SELECT COUNT(*) as total_rooms FROM rooms");
+        $totalRooms = $roomCountStmt->fetch()['total_rooms'];
+        writeLog("Total room count: {$totalRooms}", $logFile);
+    } catch (Exception $e) {
+        writeLog("Error counting total rooms: " . $e->getMessage(), $logFile);
+        throw $e;
+    }
 
-    // Log success with correct variable order
+    // Log success
     writeLog("Game state updated successfully. {$plannedRoomsAdded} new rooms added. Total room count: {$totalRooms}", $logFile);
     writeLog("Last update time set to: {$currentUtcDateTime} UTC", $logFile);
     echo json_encode([

@@ -99,25 +99,23 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $startingRent = 0;       // Default rent for new players
         $startingDividends = 0;  // Default dividends for new players
         
-        // Distribute 100 stocks randomly among the five sectors
+        // Distribute 100 stocks evenly across the five sectors
         $totalStocks = 100;
-        $remainingStocks = $totalStocks;
-        
-        // Randomly distribute stocks across sectors
-        $stock_housing = rand(0, (int)($remainingStocks * 0.4));
-        $remainingStocks -= $stock_housing;
-        
-        $stock_entertainment = rand(0, (int)($remainingStocks * 0.5));
-        $remainingStocks -= $stock_entertainment;
-        
-        $stock_weapons = rand(0, (int)($remainingStocks * 0.6));
-        $remainingStocks -= $stock_weapons;
-        
-        $stock_food = rand(0, (int)($remainingStocks * 0.7));
-        $remainingStocks -= $stock_food;
-        
-        // Assign remaining stocks to technical sector
-        $stock_technical = $remainingStocks;
+        $sectors = ['stock_housing', 'stock_entertainment', 'stock_weapons', 'stock_food', 'stock_technical'];
+        $stocks = array_fill(0, count($sectors), 0);
+
+        // Randomly assign stocks to sectors
+        for ($i = 0; $i < $totalStocks; $i++) {
+            $randomSectorIndex = array_rand($sectors);
+            $stocks[$randomSectorIndex]++;
+        }
+
+        // Assign distributed stocks to variables
+        $stock_housing = $stocks[0];
+        $stock_entertainment = $stocks[1];
+        $stock_weapons = $stocks[2];
+        $stock_food = $stocks[3];
+        $stock_technical = $stocks[4];
         
         // Get current UTC datetime for created and active timestamps
         $currentUtcDateTime = gmdate('Y-m-d H:i:s');

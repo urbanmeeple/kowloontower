@@ -365,7 +365,7 @@ function updatePlayerRentIncome() {
     // Update each player's rent and add it to their money
     $updatePlayerStmt = $pdo->prepare("
         UPDATE players 
-        SET rent = :rent, money = money + :rent 
+        SET rent = :rentValue, money = money + :rentValue 
         WHERE playerID = :playerID
     ");
 
@@ -379,7 +379,7 @@ function updatePlayerRentIncome() {
 
             // Ensure all placeholders are correctly bound
             $updatePlayerStmt->execute([
-                ':rent' => (int)$playerRent['total_rent'], // Cast total_rent to integer
+                ':rentValue' => (int)$playerRent['total_rent'], // Cast total_rent to integer
                 ':playerID' => $playerRent['playerID'] // Use playerID as a string
             ]);
             writeLog("Updated rent income for player {$playerRent['playerID']} to {$playerRent['total_rent']} and added to their money", $logFile);

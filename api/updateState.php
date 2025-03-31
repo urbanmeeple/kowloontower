@@ -632,7 +632,7 @@ function increaseRoomWear() {
                 $markInDangerStmt = $pdo->prepare("
                     UPDATE rooms 
                     SET in_danger = 1 
-                    WHERE location_x = :x AND location_y > :y AND status IN ('new_constructed', 'old_constructed')
+                    WHERE location_x = :x AND location_y < :y AND status IN ('new_constructed', 'old_constructed')
                 ");
                 $markInDangerStmt->execute(['x' => $x, 'y' => $y]);
                 

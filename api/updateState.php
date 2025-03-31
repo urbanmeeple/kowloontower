@@ -390,6 +390,87 @@ function updatePlayerRents() {
     writeLog("Updated rent income for {$totalPlayersUpdated} players", $logFile);
 }
 
+/**
+ * Calculate investment dividends for each sector type and update the investments table
+ * This analyzes room rent, wear costs, and calculates sector performance metrics
+ */
+function updateInvestmentDividends() {
+    global $pdo, $logFile;
+    
+    // Log the start of the process
+    writeLog("Starting investment dividends calculation", $logFile);
+    
+    // Define sector types
+    $sectorTypes = ['housing', 'entertainment', 'weapons', 'food', 'technical'];
+    
+    // Constants for calculations
+    $wearLimit = 0.4; // Threshold above which renovation is needed
+    $baseRenovationCost = 300; // Cost to renovate 1.0 wear over 30 days
+    
+    foreach ($sectorTypes as $sectorType) {
+        try {
+            // Step 1: Calculate total rent from all constructed rooms of this sector
+            $rentQuery = "SELECT COALESCE(SUM(room_rent), 0) as total_rent,
+                         COUNT(*) as room_count 
+                         FROM rooms 
+                         WHERE sector_type = :sector_type 
+                         AND status IN ('new_constructed', 'old_constructed')";
+            
+            $totalRentStmt = $pdo->prepare($rentQuery);
+            $totalRentStmt->execute(['sector_type' => $sectorType]);
+            $result = $totalRentStmt->fetch(PDO::FETCH_ASSOC);
+            
+            $totalRent = (int)$result['total_rent'];
+            $roomCount = (int)$result['room_count'];
+            
+            // Step 2: Calculate estimated renovation need based on wear exceeding the limit
+            $wearQuery = "SELECT SUM(GREATEST(wear - :wear_limit, 0)) as excess_wear 
+                         FROM rooms 
+                         WHERE sector_type = :sector_type 
+                         AND status IN ('new_constructed', 'old_constructed')";
+                         
+            $wearStmt = $pdo->prepare($wearQuery);
+            $wearStmt->execute(['wear_limit' => $wearLimit, 'sector_type' => $sectorType]);
+            $wearResult = $wearStmt->fetch(PDO::FETCH_ASSOC);
+            
+            $excessWear = $wearResult['excess_wear'] ?? 0;
+            $estimatedRenovateNeed = (int)round($excessWear * $baseRenovationCost);
+            
+            // Step 3: Calculate total cashflow (rent minus renovation costs)
+            $totalCashflow = $totalRent - $estimatedRenovateNeed;
+            
+            // Step 4: Calculate average cashflow per room
+            $averageCashflowPerRoom = ($roomCount > 0) ? (int)round($totalCashflow / $roomCount) : 0;
+            
+            // Update the investments table
+            $updateQuery = "INSERT INTO investments 
+                           (sector_type, rent_total, estimated_renovate_need, total_cashflow, average_cashflow_per_room) 
+                           VALUES (:sector_type, :rent_total, :estimated_renovate_need, :total_cashflow, :average_cashflow_per_room)
+                           ON DUPLICATE KEY UPDATE 
+                           rent_total = VALUES(rent_total),
+                           estimated_renovate_need = VALUES(estimated_renovate_need),
+                           total_cashflow = VALUES(total_cashflow),
+                           average_cashflow_per_room = VALUES(average_cashflow_per_room)";
+                           
+            $updateStmt = $pdo->prepare($updateQuery);
+            $updateStmt->execute([
+                'sector_type' => $sectorType,
+                'rent_total' => $totalRent,
+                'estimated_renovate_need' => $estimatedRenovateNeed,
+                'total_cashflow' => $totalCashflow,
+                'average_cashflow_per_room' => $averageCashflowPerRoom
+            ]);
+            
+            writeLog("Updated investment data for sector: $sectorType - Rent: $totalRent, Renovation: $estimatedRenovateNeed, Cashflow: $totalCashflow, Avg: $averageCashflowPerRoom", $logFile);
+            
+        } catch (Exception $e) {
+            writeLog("Error calculating investment dividends for sector $sectorType: " . $e->getMessage(), $logFile);
+        }
+    }
+    
+    writeLog("Completed investment dividends calculation", $logFile);
+}
+
 function cacheGameData() {
     global $pdo, $appCacheFile, $logFile;
     $data = [];
@@ -511,6 +592,9 @@ try {
     
     // Update players' rent income from owned rooms
     updatePlayerRents();
+
+    // Update investment dividends information
+    updateInvestmentDividends();
 
     // Remove unconstructed planned rooms
     removeUnconstructedPlannedRooms();

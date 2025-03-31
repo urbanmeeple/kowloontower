@@ -471,6 +471,70 @@ function updateInvestmentDividends() {
     writeLog("Completed investment dividends calculation", $logFile);
 }
 
+/**
+ * Increase wear for all constructed rooms
+ * Wear is increased by a random amount within +/- 50% of base wear increase
+ * Rooms that reach maximum wear (1.0) are marked as destroyed
+ */
+function increaseRoomWear() {
+    global $pdo, $logFile;
+    
+    $baseWearIncrease = 0.01; // Base wear increase per update
+    $minFactor = 0.5; // -50% of base
+    $maxFactor = 1.5; // +50% of base
+    $wearLimit = 1.0; // Maximum wear value allowed
+    
+    // Select all constructed rooms
+    $roomsStmt = $pdo->query("
+        SELECT roomID, wear 
+        FROM rooms 
+        WHERE status IN ('new_constructed', 'old_constructed')
+    ");
+    
+    $roomsUpdated = 0;
+    $roomsDestroyed = 0;
+    $totalWearAdded = 0;
+    
+    // Update wear for each room
+    while ($room = $roomsStmt->fetch(PDO::FETCH_ASSOC)) {
+        $roomID = $room['roomID'];
+        $currentWear = $room['wear'];
+        
+        // Generate random wear increase factor between minFactor and maxFactor
+        $wearFactor = $minFactor + (mt_rand() / mt_getrandmax()) * ($maxFactor - $minFactor);
+        $wearIncrease = $baseWearIncrease * $wearFactor;
+        
+        // Calculate new wear value without capping yet
+        $newWear = $currentWear + $wearIncrease;
+        
+        // Check if the room should be destroyed
+        if ($newWear >= $wearLimit) {
+            // Mark the room as destroyed
+            $updateStmt = $pdo->prepare("UPDATE rooms SET wear = :wear, status = 'destroyed' WHERE roomID = :roomID");
+            $updateStmt->execute([
+                'wear' => $wearLimit, // Cap the wear at maximum
+                'roomID' => $roomID
+            ]);
+            
+            $roomsDestroyed++;
+            writeLog("Room {$roomID} reached maximum wear and was marked as destroyed", $logFile);
+        } else {
+            // Normal wear update
+            $updateStmt = $pdo->prepare("UPDATE rooms SET wear = :wear WHERE roomID = :roomID");
+            $updateStmt->execute([
+                'wear' => $newWear,
+                'roomID' => $roomID
+            ]);
+        }
+        
+        $roomsUpdated++;
+        $totalWearAdded += ($newWear - $currentWear);
+    }
+    
+    $avgWearAdded = $roomsUpdated > 0 ? $totalWearAdded / $roomsUpdated : 0;
+    writeLog("Updated wear for {$roomsUpdated} rooms ({$roomsDestroyed} destroyed). Average wear increase: " . number_format($avgWearAdded, 4), $logFile);
+}
+
 function cacheGameData() {
     global $pdo, $appCacheFile, $logFile;
     $data = [];
@@ -586,6 +650,9 @@ try {
 
     // Process bids and update room statuses
     processBids();
+
+    // Increase wear for all constructed rooms
+    increaseRoomWear();
 
     // Calculate and update room rent
     calculateAndUpdateRoomRent();

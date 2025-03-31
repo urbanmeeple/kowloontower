@@ -95,7 +95,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = generateUniqueUsername();
         
         // Starting money
-        $startingMoney = 1000000;
+        $startingMoney = 100000;
         
         // Distribute 100 stocks randomly among the five sectors
         $totalStocks = 100;

@@ -288,7 +288,7 @@ function processBids() {
 function calculateAndUpdateRoomRent() {
     global $pdo, $logFile;
 
-    $baseValue = 1000; // Base value for rent calculation
+    $baseValue = 100; // Base value for rent calculation
     $minRentPercentage = 0.25; // Minimum rent as a percentage of base value
 
     // Fetch all constructed rooms

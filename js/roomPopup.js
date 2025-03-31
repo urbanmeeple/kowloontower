@@ -126,7 +126,15 @@ class RoomPopup {
             // Enable the button and restore its original color and text
             button.disabled = false;
             button.style.backgroundColor = button.dataset.originalColor || ''; // Restore original color
-            button.textContent = button.dataset.originalText || 'Place Bid'; // Restore original text
+
+            // Restore the correct text based on the button's context
+            if (button.dataset.originalText) {
+                button.textContent = button.dataset.originalText;
+            } else if (button.textContent.includes('Change bid')) {
+                button.textContent = 'Change bid';
+            } else {
+                button.textContent = 'Place Bid';
+            }
         });
 
         // Enable renovate button if it exists

@@ -279,6 +279,12 @@ export function renderGame(rooms) {
           bidIndicator.fill = '#4CAF50'; // Green color
           gridGroup.add(bidIndicator);
         }
+      } else if (room.status === 'destroyed') {
+        // Render destroyed rooms as solid black rectangles
+        const destroyedRoom = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
+        destroyedRoom.fill = '#000000'; // Solid black fill
+        destroyedRoom.noStroke(); // No outline to emphasize complete destruction
+        gridGroup.add(destroyedRoom);
       }
     });
 

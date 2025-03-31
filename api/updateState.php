@@ -476,6 +476,33 @@ function cacheGameData() {
     }
     fwrite($cacheHandle, '],');
     unset($stmtPlayersRooms);
+    
+    // Fetch all players incrementally (excluding playerID)
+    fwrite($cacheHandle, '"players":[');
+    $stmtAllPlayers = $pdo->query("SELECT username, money, rent, dividends, 
+                                    stock_housing, stock_entertainment, stock_weapons, 
+                                    stock_food, stock_technical, created_datetime, active_datetime 
+                                    FROM players");
+    $first = true;
+    while ($playerData = $stmtAllPlayers->fetch(PDO::FETCH_ASSOC)) {
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($playerData));
+        $first = false;
+    }
+    fwrite($cacheHandle, '],');
+    unset($stmtAllPlayers);
+    
+    // Fetch investments table incrementally
+    fwrite($cacheHandle, '"investments":[');
+    $stmtInvestments = $pdo->query("SELECT * FROM investments");
+    $first = true;
+    while ($investment = $stmtInvestments->fetch(PDO::FETCH_ASSOC)) {
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($investment));
+        $first = false;
+    }
+    fwrite($cacheHandle, '],');
+    unset($stmtInvestments);
 
     // Fetch investments table
     fwrite($cacheHandle, '"investments":[');

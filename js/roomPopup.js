@@ -430,7 +430,9 @@ class RoomPopup {
         // Room type and sector
         const roomType = (roomData.status === 'new_constructed' || roomData.status === 'old_constructed') 
             ? 'Constructed Room' 
-            : 'Planned Room';
+            : roomData.status === 'destroyed' 
+              ? 'Destroyed Room'
+              : 'Planned Room';
         const sectorType = roomData.sector_type || 'Unknown Sector';
 
         // Create elements
@@ -450,7 +452,20 @@ class RoomPopup {
 
         this.popupContainer.appendChild(roomInfo);
 
-        if (roomData.status === 'new_constructed' || roomData.status === 'old_constructed') {
+        if (roomData.status === 'destroyed') {
+            // Special handling for destroyed rooms
+            // Owner information with "Neglecting owner" prefix
+            const gameState = getLocalGameState();
+            const ownerEntry = gameState.players_rooms.find(pr => pr.roomID === roomData.roomID);
+            if (ownerEntry && ownerEntry.username) {
+                const ownerInfo = document.createElement('p');
+                ownerInfo.textContent = `Neglecting Owner: ${ownerEntry.username}`;
+                ownerInfo.style.marginBottom = '10px';
+                this.popupContainer.appendChild(ownerInfo);
+            }
+            
+            // No bid interfaces or renovate buttons for destroyed rooms
+        } else if (roomData.status === 'new_constructed' || roomData.status === 'old_constructed') {
             // Owner information
             const gameState = getLocalGameState();
             const ownerEntry = gameState.players_rooms.find(pr => pr.roomID === roomData.roomID);

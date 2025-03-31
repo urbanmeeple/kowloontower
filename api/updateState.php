@@ -345,6 +345,7 @@ function calculateAndUpdateRoomRent() {
 
 /**
  * Calculate and update total rent income for each player based on their owned rooms
+ * Also adds the rent income to player's money balance
  */
 function updatePlayerRents() {
     global $pdo, $logFile;
@@ -368,15 +369,15 @@ function updatePlayerRents() {
         $result = $totalRentStmt->fetch();
         $totalRent = $result['total_rent'] ?: 0; // Default to 0 if null
 
-        // Update player's rent parameter
-        $updatePlayerStmt = $pdo->prepare("UPDATE players SET rent = :rent WHERE playerID = :playerID");
+        // Update player's rent parameter and add the rent to player's money
+        $updatePlayerStmt = $pdo->prepare("UPDATE players SET rent = :rent, money = money + :rent WHERE playerID = :playerID");
         $updatePlayerStmt->execute([
             'rent' => $totalRent,
             'playerID' => $playerID
         ]);
 
         $totalPlayersUpdated++;
-        writeLog("Updated rent income for player {$playerID} to {$totalRent}", $logFile);
+        writeLog("Updated rent income for player {$playerID} to {$totalRent} and added to money balance", $logFile);
     }
 
     writeLog("Updated rent income for {$totalPlayersUpdated} players", $logFile);

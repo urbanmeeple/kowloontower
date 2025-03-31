@@ -572,12 +572,13 @@ function increaseRoomWear() {
     $minFactor = 0.5; // -50% of base
     $maxFactor = 1.5; // +50% of base
     $wearLimit = 1.0; // Maximum wear value allowed
+    $dangerThreshold = 0.9; // Wear threshold for marking rooms as "in_danger"
     
-    // Select all constructed rooms
+    // Select all "old_constructed" rooms
     $roomsStmt = $pdo->query("
-        SELECT roomID, wear 
+        SELECT roomID, location_x, location_y, wear 
         FROM rooms 
-        WHERE status IN ('new_constructed', 'old_constructed')
+        WHERE status = 'old_constructed'
     ");
     
     $roomsUpdated = 0;
@@ -588,6 +589,8 @@ function increaseRoomWear() {
     while ($room = $roomsStmt->fetch(PDO::FETCH_ASSOC)) {
         $roomID = $room['roomID'];
         $currentWear = $room['wear'];
+        $x = $room['location_x'];
+        $y = $room['location_y'];
         
         // Generate random wear increase factor between minFactor and maxFactor
         $wearFactor = $minFactor + (mt_rand() / mt_getrandmax()) * ($maxFactor - $minFactor);
@@ -605,8 +608,16 @@ function increaseRoomWear() {
                 'roomID' => $roomID
             ]);
             
+            // Mark all constructed rooms above this room as destroyed
+            $destroyAboveStmt = $pdo->prepare("
+                UPDATE rooms 
+                SET status = 'destroyed' 
+                WHERE location_x = :x AND location_y > :y AND status IN ('new_constructed', 'old_constructed')
+            ");
+            $destroyAboveStmt->execute(['x' => $x, 'y' => $y]);
+            
             $roomsDestroyed++;
-            writeLog("Room {$roomID} reached maximum wear and was marked as destroyed", $logFile);
+            writeLog("Room {$roomID} reached maximum wear and was marked as destroyed. All rooms above it were also destroyed.", $logFile);
         } else {
             // Normal wear update
             $updateStmt = $pdo->prepare("UPDATE rooms SET wear = :wear WHERE roomID = :roomID");
@@ -614,6 +625,19 @@ function increaseRoomWear() {
                 'wear' => $newWear,
                 'roomID' => $roomID
             ]);
+            
+            // Check if the room is in danger
+            if ($newWear >= $dangerThreshold) {
+                // Mark all constructed rooms above this room as "in_danger"
+                $markInDangerStmt = $pdo->prepare("
+                    UPDATE rooms 
+                    SET in_danger = 1 
+                    WHERE location_x = :x AND location_y > :y AND status IN ('new_constructed', 'old_constructed')
+                ");
+                $markInDangerStmt->execute(['x' => $x, 'y' => $y]);
+                
+                writeLog("Room {$roomID} wear reached {$newWear}. Marked all rooms above it as 'in_danger'.", $logFile);
+            }
         }
         
         $roomsUpdated++;

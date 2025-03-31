@@ -204,9 +204,14 @@ export function renderGame(rooms) {
         const roomRect = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
         roomRect.fill = config.colors.room;
         
-        // Determine border color and width based on wear level
+        // Determine border color and width based on wear level or danger status
         const highWear = room.wear >= 0.9;
-        roomRect.stroke = highWear ? '#FF0000' : '#000000'; // Red border for high wear
+        const inDanger = room.in_danger === 1;
+        if (inDanger) {
+          roomRect.stroke = '#FF6666'; // Light red border for rooms in danger
+        } else {
+          roomRect.stroke = highWear ? '#FF0000' : '#000000'; // Red border for high wear, black otherwise
+        }
         roomRect.linewidth = 2; // Same border width for all rooms
         
         gridGroup.add(roomRect);

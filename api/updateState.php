@@ -369,10 +369,17 @@ function updatePlayerRents() {
         $result = $totalRentStmt->fetch();
         $totalRent = $result['total_rent'] ?: 0; // Default to 0 if null
 
-        // Update player's rent parameter and add the rent to player's money
-        $updatePlayerStmt = $pdo->prepare("UPDATE players SET rent = :rent, money = money + :rent WHERE playerID = :playerID");
-        $updatePlayerStmt->execute([
+        // Step 1: Update player's rent parameter
+        $updateRentStmt = $pdo->prepare("UPDATE players SET rent = :rent WHERE playerID = :playerID");
+        $updateRentStmt->execute([
             'rent' => $totalRent,
+            'playerID' => $playerID
+        ]);
+        
+        // Step 2: Add the rent to player's money in a separate query
+        $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = money + :amount WHERE playerID = :playerID");
+        $updateMoneyStmt->execute([
+            'amount' => $totalRent,
             'playerID' => $playerID
         ]);
 

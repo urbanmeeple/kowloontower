@@ -476,10 +476,24 @@ class RoomPopup {
                 this.popupContainer.appendChild(ownerInfo);
             }
 
-            // Wear level
+            // Wear level with formatting and color coding
             const wear = document.createElement('p');
-            wear.textContent = `Wear Level: ${roomData.wear}`;
+            const wearValue = parseFloat(roomData.wear).toFixed(2); // Format to 2 decimal places
+            wear.innerHTML = `Wear Level: <span>${wearValue}</span>`;
             wear.style.marginBottom = '10px';
+            
+            // Set color based on wear value thresholds
+            const wearSpan = wear.querySelector('span');
+            if (roomData.wear < 0.4) {
+                wearSpan.style.color = '#4CAF50'; // Green for low wear
+            } else if (roomData.wear < 0.6) {
+                wearSpan.style.color = '#FFEB3B'; // Yellow for medium wear
+            } else if (roomData.wear < 0.9) {
+                wearSpan.style.color = '#FF9800'; // Orange for high wear
+            } else {
+                wearSpan.style.color = '#F44336'; // Red for critical wear
+            }
+            
             this.popupContainer.appendChild(wear);
 
             // Room rent

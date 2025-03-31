@@ -343,6 +343,53 @@ function calculateAndUpdateRoomRent() {
     }
 }
 
+/**
+ * Calculate and update each player's total rent income from all constructed rooms they own,
+ * and add the rent to the player's money.
+ */
+function updatePlayerRentIncome() {
+    global $pdo, $logFile;
+
+    // Fetch total rent income for each player
+    $playerRentStmt = $pdo->query("
+        SELECT pr.playerID, SUM(r.room_rent) AS total_rent
+        FROM players_rooms pr
+        JOIN rooms r ON pr.roomID = r.roomID
+        WHERE r.status IN ('new_constructed', 'old_constructed')
+        GROUP BY pr.playerID
+    ");
+    $playerRents = $playerRentStmt->fetchAll();
+
+    // Update each player's rent and add it to their money
+    $updatePlayerStmt = $pdo->prepare("
+        UPDATE players 
+        SET rent = :rent, money = money + :rent 
+        WHERE playerID = :playerID
+    ");
+
+    foreach ($playerRents as $playerRent) {
+        $updatePlayerStmt->execute([
+            'rent' => $playerRent['total_rent'],
+            'playerID' => $playerRent['playerID']
+        ]);
+        writeLog("Updated rent income for player {$playerRent['playerID']} to {$playerRent['total_rent']} and added to their money", $logFile);
+    }
+
+    // Set rent to 0 for players without any constructed rooms
+    $resetRentStmt = $pdo->prepare("
+        UPDATE players 
+        SET rent = 0 
+        WHERE playerID NOT IN (
+            SELECT DISTINCT playerID 
+            FROM players_rooms pr
+            JOIN rooms r ON pr.roomID = r.roomID
+            WHERE r.status IN ('new_constructed', 'old_constructed')
+        )
+    ");
+    $resetRentStmt->execute();
+    writeLog("Reset rent income to 0 for players without constructed rooms", $logFile);
+}
+
 function cacheGameData() {
     global $pdo, $appCacheFile, $logFile;
     $data = [];
@@ -385,6 +432,18 @@ function cacheGameData() {
     fwrite($cacheHandle, '],');
     unset($stmtBids);
 
+    // Add modified players table to cache
+    fwrite($cacheHandle, '"players":[');
+    $stmtPlayers = $pdo->query("SELECT username, money, rent, dividends, stock_housing, stock_entertainment, stock_weapons, stock_food, stock_technical, created_datetime, active_datetime FROM players");
+    $first = true;
+    while ($player = $stmtPlayers->fetch(PDO::FETCH_ASSOC)) {
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($player));
+        $first = false;
+    }
+    fwrite($cacheHandle, '],');
+    unset($stmtPlayers);
+
     // Fetch players_rooms incrementally
     fwrite($cacheHandle, '"players_rooms":[');
     $stmtPlayersRooms = $pdo->query("SELECT * FROM players_rooms");
@@ -398,6 +457,18 @@ function cacheGameData() {
     }
     fwrite($cacheHandle, '],');
     unset($stmtPlayersRooms);
+
+    // Fetch investments table
+    fwrite($cacheHandle, '"investments":[');
+    $stmtInvestments = $pdo->query("SELECT * FROM investments");
+    $first = true;
+    while ($investment = $stmtInvestments->fetch(PDO::FETCH_ASSOC)) {
+        if (!$first) fwrite($cacheHandle, ',');
+        fwrite($cacheHandle, json_encode($investment));
+        $first = false;
+    }
+    fwrite($cacheHandle, '],');
+    unset($stmtInvestments);
 
     // Fetch game_state incrementally
     fwrite($cacheHandle, '"game_state":[');
@@ -434,6 +505,9 @@ try {
 
     // Calculate and update room rent
     calculateAndUpdateRoomRent();
+
+    // Update player rent income and add it to their money
+    updatePlayerRentIncome();
 
     // Remove unconstructed planned rooms
     removeUnconstructedPlannedRooms();

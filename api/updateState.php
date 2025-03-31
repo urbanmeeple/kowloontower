@@ -159,7 +159,7 @@ function isAdjacentToConstructed($x, $y, $constructedCoords) {
 }
 
 /**
- * Update room statuses before processing bids.
+ * Update room statuses before processing bids and remove destroyed rooms.
  */
 function updateRoomStatuses() {
     global $pdo, $logFile;
@@ -168,6 +168,16 @@ function updateRoomStatuses() {
     $updateRoomStatusStmt = $pdo->prepare("UPDATE rooms SET status = 'old_constructed' WHERE status = 'new_constructed'");
     $updateRoomStatusStmt->execute();
     writeLog("Updated all 'new_constructed' rooms to 'old_constructed'", $logFile);
+    
+    // Count destroyed rooms before deletion for logging
+    $countStmt = $pdo->query("SELECT COUNT(*) AS count FROM rooms WHERE status = 'destroyed'");
+    $destroyedCount = $countStmt->fetch(PDO::FETCH_ASSOC)['count'];
+    
+    // Delete all rooms with status "destroyed" (will cascade to players_rooms table)
+    $deleteDestroyedRoomsStmt = $pdo->prepare("DELETE FROM rooms WHERE status = 'destroyed'");
+    $deleteDestroyedRoomsStmt->execute();
+    
+    writeLog("Removed {$destroyedCount} destroyed rooms and their ownership records", $logFile);
 }
 
 /**
@@ -479,7 +489,7 @@ function updateInvestmentDividends() {
 function increaseRoomWear() {
     global $pdo, $logFile;
     
-    $baseWearIncrease = 0.01; // Base wear increase per update
+    $baseWearIncrease = 0.3; // Base wear increase per update
     $minFactor = 0.5; // -50% of base
     $maxFactor = 1.5; // +50% of base
     $wearLimit = 1.0; // Maximum wear value allowed

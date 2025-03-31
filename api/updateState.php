@@ -370,26 +370,37 @@ function updatePlayerRentIncome() {
     ");
 
     foreach ($playerRents as $playerRent) {
-        $updatePlayerStmt->execute([
-            'rent' => $playerRent['total_rent'], // Bind total_rent
-            'playerID' => $playerRent['playerID'] // Bind playerID
-        ]);
-        writeLog("Updated rent income for player {$playerRent['playerID']} to {$playerRent['total_rent']} and added to their money", $logFile);
+        try {
+            // Ensure all placeholders are correctly bound
+            $updatePlayerStmt->execute([
+                ':rent' => $playerRent['total_rent'], // Bind total_rent
+                ':playerID' => $playerRent['playerID'] // Bind playerID
+            ]);
+            writeLog("Updated rent income for player {$playerRent['playerID']} to {$playerRent['total_rent']} and added to their money", $logFile);
+        } catch (PDOException $e) {
+            writeLog("Error updating rent for player {$playerRent['playerID']}: " . $e->getMessage(), $logFile);
+            throw $e; // Re-throw the exception to propagate the error
+        }
     }
 
     // Set rent to 0 for players without any constructed rooms
-    $resetRentStmt = $pdo->prepare("
-        UPDATE players 
-        SET rent = 0 
-        WHERE playerID NOT IN (
-            SELECT DISTINCT playerID 
-            FROM players_rooms pr
-            JOIN rooms r ON pr.roomID = r.roomID
-            WHERE r.status IN ('new_constructed', 'old_constructed')
-        )
-    ");
-    $resetRentStmt->execute();
-    writeLog("Reset rent income to 0 for players without constructed rooms", $logFile);
+    try {
+        $resetRentStmt = $pdo->prepare("
+            UPDATE players 
+            SET rent = 0 
+            WHERE playerID NOT IN (
+                SELECT DISTINCT playerID 
+                FROM players_rooms pr
+                JOIN rooms r ON pr.roomID = r.roomID
+                WHERE r.status IN ('new_constructed', 'old_constructed')
+            )
+        ");
+        $resetRentStmt->execute();
+        writeLog("Reset rent income to 0 for players without constructed rooms", $logFile);
+    } catch (PDOException $e) {
+        writeLog("Error resetting rent income: " . $e->getMessage(), $logFile);
+        throw $e; // Re-throw the exception to propagate the error
+    }
 }
 
 function cacheGameData() {

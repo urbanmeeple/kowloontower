@@ -203,8 +203,12 @@ export function renderGame(rooms) {
       if (room.status === 'new_constructed' || room.status === 'old_constructed') {
         const roomRect = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
         roomRect.fill = config.colors.room;
-        roomRect.stroke = '#000000';
-        roomRect.linewidth = 2;
+        
+        // Determine border color and width based on wear level
+        const highWear = room.wear >= 0.9;
+        roomRect.stroke = highWear ? '#FF0000' : '#000000'; // Red border for high wear
+        roomRect.linewidth = highWear ? 3 : 2; // Slightly thicker border for high wear
+        
         gridGroup.add(roomRect);
 
         const sectorType = room.sector_type || 'default';

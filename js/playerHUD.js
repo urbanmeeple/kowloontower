@@ -122,8 +122,11 @@ class PlayerHUD {
     document.getElementById('player-money').textContent = this.formatMoney(playerData.money);
     
     // Update rent and dividends data
-    document.getElementById('player-rent').textContent = this.formatMoney(playerData.rent || 0);
-    document.getElementById('player-dividends').textContent = this.formatMoney(playerData.dividends || 0);
+    const newRent = playerData.rent || 0;
+    const newDividends = playerData.dividends || 0;
+
+    document.getElementById('player-rent').textContent = this.formatMoney(newRent);
+    document.getElementById('player-dividends').textContent = this.formatMoney(newDividends);
 
     // Update stock values
     const housingStock = document.querySelector('#stock-housing span');

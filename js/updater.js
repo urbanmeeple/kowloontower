@@ -4,6 +4,7 @@ import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
 import { getPlayerState, fetchPlayerBids } from './player.js'; // Import function to refresh player bids
 import { roomPopup } from './roomPopup.js'; // Ensure roomPopup is imported
+import { showIncomeOverlay } from './infoOverlay.js'; // Import showIncomeOverlay
 
 /**
  * Fetch updated game state from the server.
@@ -170,6 +171,10 @@ async function checkAndFetchCache() {
 
       // Reset bid buttons after the update
       roomPopup.enableBidButtons();
+
+      // Show income overlay with updated rent and dividends
+      const playerState = getPlayerState();
+      showIncomeOverlay(playerState.rent, playerState.dividends);
 
     } else {
       console.log("Cache is current, no update needed");

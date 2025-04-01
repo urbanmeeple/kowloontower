@@ -7,6 +7,9 @@ const GRID_LEFT_PADDING_CELLS = 100;  // Extra cells on left/right for horizonta
 const GRID_TOP_PADDING_CELLS = 20;    // Top padding cells for grid
 const GRID_BOTTOM_EXTRA_CELLS = 100;  // Extra bottom cells for gameView height
 
+// Constant to toggle grid visibility
+const SHOW_GRID = false;
+
 // Two.js instances and rendering offsets
 export let gameTwo, backgroundTwo;
 export let verticalPan = -400; // starting vertical offset
@@ -165,24 +168,26 @@ export function renderGame(rooms) {
     const gridGroup = new Two.Group();
     gridGroup.translation.set(GRID_LEFT_PADDING_CELLS * config.cellSize, GRID_TOP_PADDING_CELLS * config.cellSize);
 
-    // Draw grid lines.
-    for (let x = 0; x <= config.gridWidth; x++) {
-      const line = new Two.Line(
-        x * config.cellSize, 0,
-        x * config.cellSize, config.gridHeight * config.cellSize
-      );
-      line.stroke = config.colors.grid;
-      line.linewidth = 1;
-      gridGroup.add(line);
-    }
-    for (let y = 0; y <= config.gridHeight; y++) {
-      const line = new Two.Line(
-        0, y * config.cellSize,
-        config.gridWidth * config.cellSize, y * config.cellSize
-      );
-      line.stroke = config.colors.grid;
-      line.linewidth = 1;
-      gridGroup.add(line);
+    // Draw grid lines if SHOW_GRID is true
+    if (SHOW_GRID) {
+      for (let x = 0; x <= config.gridWidth; x++) {
+        const line = new Two.Line(
+          x * config.cellSize, 0,
+          x * config.cellSize, config.gridHeight * config.cellSize
+        );
+        line.stroke = config.colors.grid;
+        line.linewidth = 1;
+        gridGroup.add(line);
+      }
+      for (let y = 0; y <= config.gridHeight; y++) {
+        const line = new Two.Line(
+          0, y * config.cellSize,
+          config.gridWidth * config.cellSize, y * config.cellSize
+        );
+        line.stroke = config.colors.grid;
+        line.linewidth = 1;
+        gridGroup.add(line);
+      }
     }
 
     // Get the player's username and players_rooms mapping from the local game state
@@ -405,7 +410,7 @@ export function renderPlayerListWindow() {
 
     const titleBar = document.createElement('div');
     titleBar.className = 'floating-window-title';
-    titleBar.innerHTML = 'Leaderboard <span class="toggle-icon">▼</span>';
+    titleBar.innerHTML = 'Kowloon Landlord Leaderboard <span class="toggle-icon">▼</span>';
     titleBar.addEventListener('click', () => {
       container.classList.toggle('minimized');
       const icon = titleBar.querySelector('.toggle-icon');

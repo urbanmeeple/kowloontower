@@ -192,16 +192,17 @@ input[type=range]::-moz-range-track {
   position: absolute;
   top: calc(50px + var(--player-hud-height, 0px));
   left: 10px;
-  width: 320px; /* Slightly wider than before */
-  background-color: white;
-  border: 1px solid #ccc;
+  width: 320px;
+  background-color: #000000; /* Black background for retro feel */
+  border: 2px solid #00FF00; /* Neon green border */
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 255, 0, 0.2); /* Green glow effect */
   overflow-x: hidden; /* Prevent horizontal scroll bars */
   overflow-y: auto; /* Allow vertical scrolling if needed */
   z-index: 1000;
-  font-family: 'Arial', sans-serif;
+  font-family: 'Courier New', monospace; /* Retro gaming font */
   font-size: 12px;
+  color: #00FF00; /* Neon green text */
   transition: height 0.3s ease;
 }
 
@@ -211,15 +212,16 @@ input[type=range]::-moz-range-track {
 }
 
 .floating-window-title {
-  background-color: #f4f4f4;
+  background-color: #111111; /* Darker black for contrast */
   padding: 10px;
   font-weight: bold;
   cursor: pointer;
   text-align: center;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 2px solid #00FF00; /* Neon green border */
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: #00FF00; /* Neon green text */
 }
 
 .floating-window-title .toggle-icon {
@@ -246,15 +248,17 @@ input[type=range]::-moz-range-track {
 .player-list th, .player-list td {
   text-align: left;
   padding: 5px;
+  color: #00FF00; /* Neon green text */
+  border-bottom: 1px solid #00FF00; /* Neon green row separator */
 }
 
 .player-list th {
-  background-color: #f4f4f4;
+  background-color: #222222; /* Slightly lighter black for header */
   font-weight: bold;
 }
 
 .player-list td {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid #00FF00; /* Neon green row separator */
 }
 
 .player-list .player-money {

@@ -194,7 +194,7 @@ export async function placeBid(type, roomID, amount) {
                     existingBid.amount = amount;
                     existingBid.placed_datetime = data.bid.placed_datetime;
 
-                    playerHUD.update(getPlayerData());
+                    playerHUD.update();
                     console.log(`Bid updated: ${type} bid for room ${roomID}, new amount: ${amount}`);
                     return true;
                 } else {
@@ -233,7 +233,7 @@ export async function placeBid(type, roomID, amount) {
                     placed_datetime: data.bid.placed_datetime
                 });
 
-                playerHUD.update(getPlayerData());
+                playerHUD.update();
                 console.log(`Bid placed: ${type} bid for room ${roomID}, amount: ${amount}`);
                 return true;
             } else {
@@ -270,7 +270,7 @@ export async function removeBid(bidID) {
             if (bidIndex !== -1) {
                 activeBids.splice(bidIndex, 1);
                 
-                playerHUD.update(getPlayerData());
+                playerHUD.update();
                 console.log(`Bid ${bidID} removed successfully`);
             }
             return true;
@@ -306,7 +306,7 @@ export async function fetchPlayerBids() {
             setActiveBids(data.bids || []);
             console.log(`Loaded ${activeBids.length} active bids for player`);
             
-            playerHUD.update(getPlayerData());
+            playerHUD.update();
             return true;
         } else {
             console.error('Failed to fetch player bids:', data.error);
@@ -347,7 +347,7 @@ export async function fetchPlayerRenovations() {
             setActiveRenovations(renovations);
             console.log(`Loaded ${activeRenovations.length} active renovations for player`);
             
-            playerHUD.update(getPlayerData());
+            playerHUD.update();
             return true;
         } else {
             console.error('Failed to fetch player renovations:', data.error);
@@ -386,7 +386,7 @@ export async function requestRenovation(roomID, type) {
         if (data.success) {
             console.log(`Renovation requested: Room ${roomID}, Type: ${type}`);
             await fetchPlayerRenovations(); // Refresh active renovations
-            playerHUD.update(getPlayerData());
+            playerHUD.update();
             return true;
         } else {
             console.error('Failed to request renovation:', data.error);
@@ -426,7 +426,7 @@ export async function fetchPlayerData(playerID) {
             await fetchPlayerBids();
             await fetchPlayerRenovations();
             
-            playerHUD.update(getPlayerData());
+            playerHUD.update();
             showWelcomeMessage(false);
             return true;
         } else {
@@ -458,7 +458,7 @@ export async function createNewPlayer() {
             setIsNewPlayer(true);
             savePlayerIDToStorage(data.player.playerID);
             savePlayerUsernameToStorage(data.player.username);
-            playerHUD.update(getPlayerData());
+            playerHUD.update();
             showWelcomeMessage(true);
             return true;
         } else {

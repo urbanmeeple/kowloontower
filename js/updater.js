@@ -2,7 +2,7 @@ import { config } from './config.js.php';
 import { renderGame, resetBrightnessCycle, updatePlayerListWindow } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
-import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends, getActiveBids, getPlayerIDFromStorage, getPlayerUsernameFromStorage } from './player.js'; // Added getActiveBids, getPlayerIDFromStorage, getPlayerUsernameFromStorage
+import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends, getActiveBids, getPlayerIDFromStorage, getPlayerUsernameFromStorage, fetchPlayerRenovations } from './player.js'; // Added getActiveBids, getPlayerIDFromStorage, getPlayerUsernameFromStorage, fetchPlayerRenovations
 import { roomPopup } from './roomPopup.js'; // Ensure roomPopup is imported
 import { showIncomeOverlay } from './infoOverlay.js'; // Import showIncomeOverlay
 
@@ -93,33 +93,20 @@ export async function updateGameAndHUD() {
       return;
     }
 
-    // Refresh player's active bids and wait for completion
+    // Refresh player's active bids and renovations, and wait for completion
     await fetchPlayerBids();
+    await fetchPlayerRenovations();
 
     // Get current player username and active bids
     const username = getPlayerUsernameFromStorage(); // Use username from local storage
-    const activeBids = getActiveBids();
 
     if (username && gameState.players) {
       // Find the player data by username
       const currentPlayer = gameState.players.find(player => player.username === username);
 
       if (currentPlayer) {
-        // Count rooms owned by this player
-        let roomCount = 0;
-        if (gameState.players_rooms) {
-          roomCount = gameState.players_rooms.filter(pr => pr.username === username).length;
-        }
-
-        // Update current player with room count and active bids
-        const updatedPlayerState = {
-          ...currentPlayer,
-          roomCount: roomCount,
-          activeBids: activeBids
-        };
-
-        console.log("Updating playerHUD with player data:", updatedPlayerState);
-        playerHUD.update(updatedPlayerState);
+        console.log("Updating playerHUD");
+        playerHUD.update();
       } else {
         console.error("Current player not found in game state");
       }

@@ -1,7 +1,7 @@
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
 import { roomPopup } from './roomPopup.js'; // Import roomPopup to update buttons
-import { getPlayerUsername, getPlayerMoney, getPlayerRent, getPlayerDividends, getPlayerStocks, getActiveBids, getActiveRenovations } from './player.js';
+import { getPlayerUsername, getPlayerMoney, getPlayerRent, getPlayerDividends, getPlayerStocks, getActiveBids, getActiveRenovations, getPlayerUsernameFromStorage } from './player.js';
 
 /**
  * Player HUD Component
@@ -125,8 +125,8 @@ class PlayerHUD {
    * Update the HUD with new player data
    * @param {Object} playerData - Object containing player information
    */
-  update(playerData) {
-    console.log("playerHUD.update called with:", playerData);
+  update() {
+    console.log("playerHUD.update called");
 
     // Update DOM elements with new data
     document.getElementById('player-username').textContent = getPlayerUsername();
@@ -146,7 +146,7 @@ class PlayerHUD {
     const gameState = getLocalGameState();
     if (gameState && gameState.players_rooms) {
       const ownedRooms = gameState.players_rooms.filter(
-        pr => pr.username === playerData.username && 
+        pr => pr.username === getPlayerUsernameFromStorage() && 
               gameState.rooms.some(
                 room => room.roomID === pr.roomID && 
                         (room.status === 'new_constructed' || room.status === 'old_constructed')
@@ -219,7 +219,7 @@ class PlayerHUD {
         clearInterval(this.timerInterval); // Stop the timer when it reaches 0
         renderGame(getLocalGameState().rooms); // Re-render the game
         roomPopup.updatePopupButtons(); // Update popup buttons when timer reaches 0
-        this.update(getPlayerData()); // Refresh HUD data
+        this.update(); // Refresh HUD data
       }
     }, 1000);
   }

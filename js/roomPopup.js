@@ -1,4 +1,4 @@
-import { getActiveBids, getAvailableMoney, removeBid, getActiveRenovations, placeBid } from './player.js';
+import { getActiveBids, getAvailableMoney, removeBid, getActiveRenovations, placeBid, requestRenovation } from './player.js';
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
 import { isTimerAtZero } from './playerHUD.js';
@@ -489,7 +489,7 @@ class RoomPopup {
                 button.disabled = true;
                 button.textContent = 'Processing...';
 
-                const success = await this.sendRenovationRequest(roomData.roomID, type);
+                const success = await requestRenovation(roomData.roomID, type);
                 if (success) {
                     button.textContent = `${label} Renovation Queued!`;
                 } else {
@@ -546,33 +546,6 @@ class RoomPopup {
                 button.style.backgroundColor = button.dataset.originalColor;
             }
         });
-    }
-
-    /**
-     * Send a renovation request to the server
-     * @param {number} roomID - The room ID to renovate
-     * @param {string} type - The type of renovation ('small', 'big', 'amazing')
-     * @returns {Promise<boolean>} - Whether the request was successful
-     */
-    async sendRenovationRequest(roomID, type) {
-        try {
-            const response = await fetch('/api/renovateRoom.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomID, type })
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                // Update the renovation buttons to reflect the pending state
-                this.updateRenovationButtons();
-            }
-
-            return result.success;
-        } catch (error) {
-            console.error('Renovation request failed:', error);
-            return false;
-        }
     }
 
     show(roomData) {

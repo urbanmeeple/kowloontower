@@ -6,14 +6,36 @@ require_once('../utils/logger.php');
 $logFile = dirname(__FILE__) . '/../logs/game.log';
 writeLog("Renovation request received.", $logFile);
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['playerID'])) {
+    $playerID = htmlspecialchars(strip_tags(trim($_GET['playerID'])));
+    writeLog("Fetching renovations for playerID: {$playerID}", $logFile);
+
+    try {
+        // Fetch active renovations for the player
+        $stmt = $pdo->prepare("SELECT * FROM renovation_queue WHERE playerID = :playerID AND status = 'pending'");
+        $stmt->execute(['playerID' => $playerID]);
+        $renovations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        writeLog("Found " . count($renovations) . " renovations for playerID: {$playerID}", $logFile);
+
+        echo json_encode(['success' => true, 'renovations' => $renovations]);
+    } catch (Exception $e) {
+        writeLog("Error fetching renovations: " . $e->getMessage(), $logFile);
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Failed to fetch renovations.']);
+    }
+    exit;
+}
+
 $data = json_decode(file_get_contents('php://input'), true);
 $roomID = $data['roomID'] ?? null;
 $type = $data['type'] ?? null;
+$playerID = $data['playerID'] ?? null; // Use playerID from the request payload
 
-writeLog("Received input: roomID = {$roomID}, type = {$type}", $logFile);
+writeLog("Received input: roomID = {$roomID}, type = {$type}, playerID = {$playerID}", $logFile);
 
-if (!$roomID || !$type) {
-    writeLog("Invalid input: roomID or type is missing.", $logFile);
+if (!$roomID || !$type || !$playerID) {
+    writeLog("Invalid input: roomID, type, or playerID is missing.", $logFile);
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid input.']);
     exit;
@@ -22,29 +44,36 @@ if (!$roomID || !$type) {
 try {
     $pdo->beginTransaction();
 
-    // Fetch room and player data
-    $stmt = $pdo->prepare("SELECT r.wear, r.status, pr.playerID, p.money FROM rooms r
-                           JOIN players_rooms pr ON r.roomID = pr.roomID
-                           JOIN players p ON pr.playerID = p.playerID
-                           WHERE r.roomID = :roomID");
-    $stmt->execute(['roomID' => $roomID]);
-    $roomPlayerData = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Fetch player data
+    $playerStmt = $pdo->prepare("SELECT money FROM players WHERE playerID = :playerID");
+    $playerStmt->execute(['playerID' => $playerID]);
+    $playerData = $playerStmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$roomPlayerData) {
+    if (!$playerData) {
+        writeLog("Player not found for playerID = {$playerID}.", $logFile);
+        throw new Exception('Player not found.');
+    }
+
+    $currentMoney = $playerData['money'];
+
+    // Fetch room data
+    $roomStmt = $pdo->prepare("SELECT wear, status FROM rooms WHERE roomID = :roomID");
+    $roomStmt->execute(['roomID' => $roomID]);
+    $roomData = $roomStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$roomData) {
         writeLog("Room not found for roomID = {$roomID}.", $logFile);
         throw new Exception('Room not found.');
     }
 
-    writeLog("Fetched room and player data: " . json_encode($roomPlayerData), $logFile);
+    writeLog("Fetched room data: " . json_encode($roomData), $logFile);
 
-    if ($roomPlayerData['status'] !== 'old_constructed') {
-        writeLog("Room status is not eligible for renovation: status = {$roomPlayerData['status']}.", $logFile);
+    if ($roomData['status'] !== 'old_constructed') {
+        writeLog("Room status is not eligible for renovation: status = {$roomData['status']}.", $logFile);
         throw new Exception('Room not eligible for renovation.');
     }
 
-    $playerID = $roomPlayerData['playerID'];
-    $currentMoney = $roomPlayerData['money'];
-    $currentWear = $roomPlayerData['wear'];
+    $currentWear = $roomData['wear'];
 
     writeLog("Player ID: {$playerID}, Current Money: {$currentMoney}, Current Wear: {$currentWear}", $logFile);
 
@@ -97,9 +126,6 @@ try {
     $updateMoneyStmt->execute(['newMoney' => $newMoney, 'playerID' => $playerID]);
 
     writeLog("Player money updated: playerID = {$playerID}, Old Money = {$currentMoney}, New Money = {$newMoney}.", $logFile);
-
-    // Log the renovation request
-    writeLog("Renovation request successfully processed: playerID = {$playerID}, roomID = {$roomID}, type = {$type}.", $logFile);
 
     $pdo->commit();
     echo json_encode(['success' => true]);

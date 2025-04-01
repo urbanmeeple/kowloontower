@@ -1,7 +1,7 @@
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
 import { roomPopup } from './roomPopup.js'; // Import roomPopup to update buttons
-import { getPlayerUsername, getPlayerMoney, getPlayerRent, getPlayerDividends, getPlayerStocks, getActiveBids } from './player.js';
+import { getPlayerUsername, getPlayerMoney, getPlayerRent, getPlayerDividends, getPlayerStocks, getActiveBids, getActiveRenovations } from './player.js';
 
 /**
  * Player HUD Component
@@ -62,6 +62,10 @@ class PlayerHUD {
     const bidsSection = document.createElement('div');
     bidsSection.className = 'hud-section bids-section';
 
+    // Create active renovations section
+    const renovationsSection = document.createElement('div');
+    renovationsSection.className = 'hud-section renovations-section';
+
     // Add elements for each data point
     usernameSection.innerHTML = '<span class="label">Player:</span> <span id="player-username">Loading...</span>';
 
@@ -86,6 +90,9 @@ class PlayerHUD {
     // Active bids display
     bidsSection.innerHTML = '<span class="label">Active Bids:</span> <span id="active-bids-count">0</span> (<span id="active-bids-amount">$0</span>)';
 
+    // Active renovations display
+    renovationsSection.innerHTML = '<span class="label">Active Renovations:</span> <span id="active-renovations-count">0</span> (<span id="active-renovations-amount">$0</span>)';
+
     // Timer display
     timerSection.innerHTML = '<span class="label">Next Day In:</span> <span id="countdown-timer" class="timer-normal">00</span>';
 
@@ -97,6 +104,7 @@ class PlayerHUD {
     this.element.appendChild(stocksSection);
     this.element.appendChild(roomsSection);
     this.element.appendChild(bidsSection);
+    this.element.appendChild(renovationsSection);
     this.element.appendChild(timerSection);
   }
 
@@ -166,6 +174,16 @@ class PlayerHUD {
     } else {
       bidsSection.style.color = ''; // Reset to default color
     }
+
+    // Update active renovations information
+    const activeRenovations = getActiveRenovations();
+    const activeRenovationsCount = activeRenovations.length;
+    const activeRenovationsAmount = activeRenovations.reduce((total, renovation) => total + renovation.cost, 0);
+
+    document.getElementById('active-renovations-count').textContent = activeRenovationsCount;
+    document.getElementById('active-renovations-amount').textContent = this.formatMoney(activeRenovationsAmount);
+
+    console.log("HUD updated with active renovations:", { activeRenovationsCount, activeRenovationsAmount });
 
     console.log('HUD updated with new player data');
   }

@@ -532,10 +532,13 @@ export function initHelpWindow() {
     const helpContent = document.createElement('div');
     helpContent.className = 'help-content';
     helpContent.innerHTML = `
-      Start by placing a bid on a planned room in the tower. The planned rooms have a paler colour. Each new day (~each minute) the player that placed the highest bid gets to construct the room. And some new planned rooms are added to the tower for a new round of bidding.<br><br>
+      Welcome to Kowloon Tower dear Landlord!<br><br>
+      Lets build a tower together and climb the Landlord Leaderboard by gaining money through rent income and dividends!<br><br>
+      Start by placing a bid by clicking on a planned room in the tower. The planned rooms have a paler colour. Each new day (~each minute) the player that placed the highest bid gets to construct the room. And some new planned rooms are added to the tower for a new round of bidding.<br><br>
       Renovate when the Wear level increases, or the rooms will be destroyed (at 1.0 wear).<br><br>
-      The rooms give you rent income based on the location within the tower - try to figure out the rules :) Good luck!<br><br>
-      //Joel
+      The rooms give you rent income based on the location within the tower - try to figure out the rules for each sector :) <br><br>
+      Oh, and your progress will be saved in local browser storage. No peronal info, just a random playerID. So you can leave and come back later! But your rooms might have withered...<br><br>
+      Good luck! //Joel
     `;
 
     helpWindow.appendChild(closeButton);

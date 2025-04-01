@@ -2,7 +2,7 @@ import { config } from './config.js.php';
 import { renderGame, resetBrightnessCycle, updatePlayerListWindow } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
-import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends, getActiveBids } from './player.js'; // Added getActiveBids
+import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends, getActiveBids, getPlayerIDFromStorage, getPlayerUsernameFromStorage } from './player.js'; // Added getActiveBids, getPlayerIDFromStorage, getPlayerUsernameFromStorage
 import { roomPopup } from './roomPopup.js'; // Ensure roomPopup is imported
 import { showIncomeOverlay } from './infoOverlay.js'; // Import showIncomeOverlay
 

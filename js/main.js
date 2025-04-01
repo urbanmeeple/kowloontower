@@ -1,7 +1,7 @@
 import { initRender, animateBackground, resizeCanvas, renderPlayerListWindow } from './render.js';
 import { initInputHandlers } from './input.js';
 import { startAutoUpdates, fetchUpdatedGameState } from './updater.js';
-import { initializePlayer } from './player.js';
+import { initializePlayer, getPlayerIDFromStorage } from './player.js'; // Import missing function
 import { roomPopup } from './roomPopup.js'; // Import roomPopup for proper initialization
 
 /**

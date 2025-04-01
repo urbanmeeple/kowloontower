@@ -155,6 +155,9 @@ class RoomPopup {
         } else {
             this.enableBidButtons();
         }
+        if (this.currentRoom) {
+            this.updateRenovationButtons();
+        }
     }
 
     /**
@@ -435,20 +438,25 @@ class RoomPopup {
         const createButton = (label, type) => {
             const button = document.createElement('button');
             const cost = config.renovationCosts[type]; // Fetch cost from config
-            button.textContent = `${label} (${this.formatMoney(cost)})`; // Show cost on button
-            button.style.margin = '5px';
-            button.style.padding = '10px';
-            button.style.backgroundColor = '#4CAF50';
-            button.style.color = 'white';
-            button.style.border = 'none';
-            button.style.borderRadius = '5px';
-            button.style.cursor = 'pointer';
+            button.dataset.originalText = `${label} (${this.formatMoney(cost)})`;
+            button.dataset.originalColor = '#4CAF50'; // Default green color
+            button.textContent = button.dataset.originalText;
+            Object.assign(button.style, {
+                margin: '5px',
+                padding: '10px',
+                backgroundColor: button.dataset.originalColor,
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+            });
 
-            // Disable button if a "pending" renovation exists for the room
+            // Check if a "pending" renovation exists for the room
             const playerState = getPlayerState();
             const isPending = playerState.activeRenovations.some(
                 renovation => renovation.roomID === roomData.roomID && renovation.status === 'pending'
             );
+
             if (isPending) {
                 button.disabled = true;
                 button.textContent = 'Renovation Pending';
@@ -471,11 +479,46 @@ class RoomPopup {
             return button;
         };
 
-        renovationSection.appendChild(createButton('Small', 'small'));
-        renovationSection.appendChild(createButton('Big', 'big'));
-        renovationSection.appendChild(createButton('Amazing', 'amazing'));
+        // Create buttons for each renovation type
+        this.renovateButtons = {
+            small: createButton('Small', 'small'),
+            big: createButton('Big', 'big'),
+            amazing: createButton('Amazing', 'amazing'),
+        };
+
+        // Append buttons to the section
+        renovationSection.appendChild(this.renovateButtons.small);
+        renovationSection.appendChild(this.renovateButtons.big);
+        renovationSection.appendChild(this.renovateButtons.amazing);
 
         this.popupContainer.appendChild(renovationSection);
+    }
+
+    /**
+     * Update the renovation buttons dynamically based on the timer state
+     */
+    updateRenovationButtons() {
+        const playerState = getPlayerState();
+        const isPending = playerState.activeRenovations.some(
+            renovation => renovation.roomID === this.currentRoom.roomID && renovation.status === 'pending'
+        );
+
+        Object.keys(this.renovateButtons).forEach(type => {
+            const button = this.renovateButtons[type];
+            if (isPending) {
+                button.disabled = true;
+                button.textContent = 'Renovation Pending';
+                button.style.backgroundColor = '#9E9E9E'; // Gray
+            } else if (isTimerAtZero()) {
+                button.disabled = true;
+                button.textContent = 'Disabled';
+                button.style.backgroundColor = '#9E9E9E'; // Gray
+            } else {
+                button.disabled = false;
+                button.textContent = button.dataset.originalText;
+                button.style.backgroundColor = button.dataset.originalColor;
+            }
+        });
     }
 
     /**

@@ -426,6 +426,18 @@ export function renderPlayerListWindow() {
 }
 
 /**
+ * Formats a number into a short format (e.g., 10K for 10000).
+ * @param {number} num - The number to format.
+ * @returns {string} The formatted string.
+ */
+function formatMoney(num) {
+  if (num >= 1000) {
+    return `${Math.floor(num / 1000)}K`;
+  }
+  return num.toString();
+}
+
+/**
  * Updates the content of the leaderboard window.
  */
 export function updatePlayerListWindow() {
@@ -456,6 +468,7 @@ export function updatePlayerListWindow() {
             <th>Player</th>
             <th>Rent</th>
             <th>Dividends</th>
+            <th>Money</th> <!-- New Money column -->
           </tr>
         </thead>
         <tbody>
@@ -468,6 +481,7 @@ export function updatePlayerListWindow() {
                 <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
                 <td class="player-rent">${player.rent || 0}</td>
                 <td class="player-dividends">${player.dividends || 0}</td>
+                <td class="player-money">${formatMoney(player.money || 0)}</td> <!-- Display formatted money -->
               </tr>
             `;
           }).join('')}

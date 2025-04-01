@@ -256,6 +256,11 @@ input[type=range]::-moz-range-track {
   border-bottom: 1px solid #ccc;
 }
 
+.player-list .player-money {
+  text-align: right; /* Align money values to the right */
+  font-weight: bold; /* Highlight money values */
+}
+
 .player-list tr:last-child td {
   border-bottom: none;
 }

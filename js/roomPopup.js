@@ -608,11 +608,8 @@ class RoomPopup {
 
             // Add renovation section
             this.addRenovationSection(roomData);
-            
-            // Add bid to buy interface
-            const buyBidInterface = this.createBidInterface('buy', roomData);
-            this.popupContainer.appendChild(buyBidInterface);
-            
+
+            // Removed buy bid interface for constructed rooms
         } else if (roomData.status === 'planned') {
             // Add bid to construct interface
             const constructBidInterface = this.createBidInterface('construct', roomData);

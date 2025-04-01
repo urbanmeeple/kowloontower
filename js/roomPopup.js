@@ -214,8 +214,8 @@ class RoomPopup {
         availableMoneyElement.textContent = `Available Money: ${this.formatMoney(totalAvailableMoney)}`;
         bidContainer.appendChild(availableMoneyElement);
 
-        // Minimum bid amount is always 1
-        const minBidAmount = 1;
+        // Minimum bid amount
+        const minBidAmount = 1000;
         
         // Maximum bid amount (available money)
         const maxBidAmount = totalAvailableMoney;

@@ -1,4 +1,4 @@
-import { getActiveBids, getAvailableMoney, removeBid, getActiveRenovations } from './player.js';
+import { getActiveBids, getAvailableMoney, removeBid, getActiveRenovations, placeBid } from './player.js';
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
 import { isTimerAtZero } from './playerHUD.js';

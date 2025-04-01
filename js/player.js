@@ -1,39 +1,128 @@
 // This file contains functions to manage the player including fetching, creation, and initialization.
 import { config } from './config.js.php';
-import { playerHUD } from './playerHUD.js'; // Assumes playerHUD.js exports an instance
+import { playerHUD } from './playerHUD.js';
+import { getLocalGameState } from './state.js';
 
-// Local player state to replace gameState.player usage
-let playerState = {
-    playerID: null,
-    username: '',
-    money: 0,
-    rent: 0,            // Add rent field
-    dividends: 0,       // Add dividends field
-    roomCount: 0,
-    isNewPlayer: false,
-    stock_housing: 0,
-    stock_entertainment: 0,
-    stock_weapons: 0, 
-    stock_food: 0,
-    stock_technical: 0,
-    activeBids: [], // Track active bids placed by the player
-    activeRenovations: [] // Track active renovations
-};
+// Local variables for tracking player-specific data
+let activeBids = [];
+let activeRenovations = [];
+let isNewPlayer = false;
 
 /**
- * Get current player state
- * @returns {Object} The current player state
+ * Get the current player ID from localStorage.
+ * @returns {string|null} The playerID or null if not found.
  */
-export function getPlayerState() {
-    return playerState;
+export function getPlayerIDFromStorage() {
+    return localStorage.getItem(config.player.storageKey);
 }
 
 /**
- * Calculate the total amount of money in active bids
- * @returns {number} Total money currently in active bids
+ * Get the current player's data from the local game state.
+ * @returns {Object|null} The player's data or null if not found.
  */
-export function getTotalActiveBidsAmount() {
-    return playerState.activeBids.reduce((total, bid) => total + bid.amount, 0);
+export function getPlayerData() {
+    const playerID = getPlayerIDFromStorage();
+    const gameState = getLocalGameState();
+    return gameState.players?.find(player => player.playerID === playerID) || null;
+}
+
+/**
+ * Get the player's username.
+ * @returns {string} The player's username.
+ */
+export function getPlayerUsername() {
+    const player = getPlayerData();
+    return player?.username || '';
+}
+
+/**
+ * Get the player's money.
+ * @returns {number} The player's money.
+ */
+export function getPlayerMoney() {
+    const player = getPlayerData();
+    return player?.money || 0;
+}
+
+/**
+ * Get the player's rent income.
+ * @returns {number} The player's rent income.
+ */
+export function getPlayerRent() {
+    const player = getPlayerData();
+    return player?.rent || 0;
+}
+
+/**
+ * Get the player's dividends income.
+ * @returns {number} The player's dividends income.
+ */
+export function getPlayerDividends() {
+    const player = getPlayerData();
+    return player?.dividends || 0;
+}
+
+/**
+ * Get the player's stock holdings.
+ * @returns {Object} An object containing the player's stock holdings.
+ */
+export function getPlayerStocks() {
+    const player = getPlayerData();
+    return {
+        housing: player?.stock_housing || 0,
+        entertainment: player?.stock_entertainment || 0,
+        weapons: player?.stock_weapons || 0,
+        food: player?.stock_food || 0,
+        technical: player?.stock_technical || 0
+    };
+}
+
+/**
+ * Get the player's active bids.
+ * @returns {Array} The player's active bids.
+ */
+export function getActiveBids() {
+    return activeBids;
+}
+
+/**
+ * Set the player's active bids.
+ * @param {Array} bids - The new active bids.
+ */
+export function setActiveBids(bids) {
+    activeBids = bids;
+}
+
+/**
+ * Get the player's active renovations.
+ * @returns {Array} The player's active renovations.
+ */
+export function getActiveRenovations() {
+    return activeRenovations;
+}
+
+/**
+ * Set the player's active renovations.
+ * @param {Array} renovations - The new active renovations.
+ */
+export function setActiveRenovations(renovations) {
+    activeRenovations = renovations;
+}
+
+/**
+ * Check if the player is new.
+ * @returns {boolean} True if the player is new, false otherwise.
+ */
+export function getIsNewPlayer() {
+    return isNewPlayer;
+}
+
+/**
+ * Set whether the player is new.
+ * @param {boolean} value - True if the player is new, false otherwise.
+ */
+export function setIsNewPlayer(value) {
+    isNewPlayer = value;
 }
 
 /**
@@ -41,10 +130,9 @@ export function getTotalActiveBidsAmount() {
  * @returns {number} The available money.
  */
 export function getAvailableMoney() {
-    const playerState = getPlayerState();
-    const reservedMoney = playerState.activeBids.reduce((sum, bid) => sum + bid.amount, 0) +
-                          playerState.activeRenovations.reduce((sum, renovation) => sum + renovation.cost, 0);
-    return playerState.money - reservedMoney;
+    const reservedMoney = activeBids.reduce((sum, bid) => sum + bid.amount, 0) +
+                          activeRenovations.reduce((sum, renovation) => sum + renovation.cost, 0);
+    return getPlayerMoney() - reservedMoney;
 }
 
 /**
@@ -56,22 +144,18 @@ export function getAvailableMoney() {
  */
 export async function placeBid(type, roomID, amount) {
     try {
-        // Check if there's an existing bid for this room and type
-        const existingBid = playerState.activeBids.find(
+        const existingBid = activeBids.find(
             bid => bid.roomID === roomID && bid.type === type
         );
 
-        // Calculate the effective available money
         const availableMoney = getAvailableMoney() + (existingBid ? existingBid.amount : 0);
 
-        // Check if the player has enough money for the new bid
         if (amount > availableMoney) {
             console.error("Not enough available money for this bid");
             return false;
         }
 
         if (existingBid) {
-            // Update the existing bid if the amount is different
             if (existingBid.amount !== amount) {
                 const response = await fetch(`api/bid.php`, {
                     method: 'POST',
@@ -80,7 +164,7 @@ export async function placeBid(type, roomID, amount) {
                         type: type,
                         roomID: roomID,
                         amount: amount,
-                        playerID: playerState.playerID
+                        playerID: getPlayerIDFromStorage()
                     })
                 });
 
@@ -91,12 +175,10 @@ export async function placeBid(type, roomID, amount) {
 
                 const data = await response.json();
                 if (data.success && data.bid) {
-                    // Update the bid in the player's active bids array
                     existingBid.amount = amount;
                     existingBid.placed_datetime = data.bid.placed_datetime;
 
-                    // Update HUD to reflect the updated bid
-                    playerHUD.update(playerState);
+                    playerHUD.update(getPlayerData());
                     console.log(`Bid updated: ${type} bid for room ${roomID}, new amount: ${amount}`);
                     return true;
                 } else {
@@ -108,7 +190,6 @@ export async function placeBid(type, roomID, amount) {
                 return true;
             }
         } else {
-            // Place a new bid if no existing bid is found
             const response = await fetch('api/bid.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -116,7 +197,7 @@ export async function placeBid(type, roomID, amount) {
                     type: type,
                     roomID: roomID,
                     amount: amount,
-                    playerID: playerState.playerID
+                    playerID: getPlayerIDFromStorage()
                 })
             });
 
@@ -127,8 +208,7 @@ export async function placeBid(type, roomID, amount) {
 
             const data = await response.json();
             if (data.success && data.bid) {
-                // Add the new bid to player's active bids list
-                playerState.activeBids.push({
+                activeBids.push({
                     bidID: data.bid.bidID,
                     type: type,
                     roomID: roomID,
@@ -137,8 +217,7 @@ export async function placeBid(type, roomID, amount) {
                     placed_datetime: data.bid.placed_datetime
                 });
 
-                // Update HUD to show new bid info
-                playerHUD.update(playerState);
+                playerHUD.update(getPlayerData());
                 console.log(`Bid placed: ${type} bid for room ${roomID}, amount: ${amount}`);
                 return true;
             } else {
@@ -159,7 +238,6 @@ export async function placeBid(type, roomID, amount) {
  */
 export async function removeBid(bidID) {
     try {
-        // Send request to server to remove the bid
         const response = await fetch(`api/bid.php?bidID=${encodeURIComponent(bidID)}`, {
             method: 'DELETE'
         });
@@ -172,13 +250,11 @@ export async function removeBid(bidID) {
         const data = await response.json();
         
         if (data.success) {
-            // Remove bid from player's active bids array
-            const bidIndex = playerState.activeBids.findIndex(bid => bid.bidID == bidID);
+            const bidIndex = activeBids.findIndex(bid => bid.bidID == bidID);
             if (bidIndex !== -1) {
-                playerState.activeBids.splice(bidIndex, 1);
+                activeBids.splice(bidIndex, 1);
                 
-                // Update HUD to reflect removed bid
-                playerHUD.update(playerState);
+                playerHUD.update(getPlayerData());
                 console.log(`Bid ${bidID} removed successfully`);
             }
             return true;
@@ -198,9 +274,10 @@ export async function removeBid(bidID) {
  */
 export async function fetchPlayerBids() {
     try {
-        if (!playerState.playerID) return false;
+        const playerID = getPlayerIDFromStorage();
+        if (!playerID) return false;
 
-        const response = await fetch(`api/bid.php?playerID=${encodeURIComponent(playerState.playerID)}`);
+        const response = await fetch(`api/bid.php?playerID=${encodeURIComponent(playerID)}`);
         
         if (!response.ok) {
             console.error('Server error when fetching bids:', await response.text());
@@ -210,12 +287,10 @@ export async function fetchPlayerBids() {
         const data = await response.json();
         
         if (data.success) {
-            // Update player's active bids array
-            playerState.activeBids = data.bids || [];
-            console.log(`Loaded ${playerState.activeBids.length} active bids for player`);
+            setActiveBids(data.bids || []);
+            console.log(`Loaded ${activeBids.length} active bids for player`);
             
-            // Update HUD to show current bids
-            playerHUD.update(playerState);
+            playerHUD.update(getPlayerData());
             return true;
         } else {
             console.error('Failed to fetch player bids:', data.error);
@@ -228,19 +303,11 @@ export async function fetchPlayerBids() {
 }
 
 /**
- * Check if a player ID exists in localStorage.
- * @returns {string|null} The playerID or null if not found.
- */
-export function getPlayerIDFromStorage() {
-    return localStorage.getItem(config.player.storageKey);
-}
-
-/**
  * Save playerID to localStorage.
  * @param {string} playerID - The playerID to save.
  */
 export function savePlayerIDToStorage(playerID) {
-    localStorage.setItem(config.player.storageKey, playerID); // Ensure playerID is treated as a string
+    localStorage.setItem(config.player.storageKey, playerID);
 }
 
 /**
@@ -256,21 +323,13 @@ export async function fetchPlayerData(playerID) {
         }
         const data = await response.json();
         if (data.success && data.player) {
-            playerState = {
-                ...playerState,
-                ...data.player,
-                rent: data.player.rent || 0,           // Ensure rent is set
-                dividends: data.player.dividends || 0, // Ensure dividends is set
-                isNewPlayer: false,
-                activeBids: playerState.activeBids || [], // Preserve active bids if they exist
-                activeRenovations: playerState.activeRenovations || [] // Preserve active renovations if they exist
-            };
-            savePlayerUsernameToStorage(data.player.username); // Save username to localStorage
+            setIsNewPlayer(false);
+            savePlayerIDToStorage(data.player.playerID);
+            savePlayerUsernameToStorage(data.player.username);
             
-            // After loading player data, fetch their active bids
             await fetchPlayerBids();
             
-            playerHUD.update(playerState);
+            playerHUD.update(getPlayerData());
             showWelcomeMessage(false);
             return true;
         } else {
@@ -299,18 +358,10 @@ export async function createNewPlayer() {
         }
         const data = await response.json();
         if (data.success && data.player) {
-            playerState = {
-                ...playerState,
-                ...data.player,
-                rent: data.player.rent || 0,           // Ensure rent is set
-                dividends: data.player.dividends || 0, // Ensure dividends is set
-                roomCount: 0,
-                isNewPlayer: true,
-                activeRenovations: []
-            };
+            setIsNewPlayer(true);
             savePlayerIDToStorage(data.player.playerID);
-            savePlayerUsernameToStorage(data.player.username); // Save username to localStorage
-            playerHUD.update(playerState);
+            savePlayerUsernameToStorage(data.player.username);
+            playerHUD.update(getPlayerData());
             showWelcomeMessage(true);
             return true;
         } else {
@@ -355,8 +406,8 @@ function showWelcomeMessage(isNewPlayer) {
         textAlign: 'center'
     });
     welcomeMsg.textContent = isNewPlayer 
-        ? `Welcome to Kowloon Tower, ${playerState.username}!`
-        : `Welcome back, ${playerState.username}!`;
+        ? `Welcome to Kowloon Tower, ${getPlayerUsername()}!`
+        : `Welcome back, ${getPlayerUsername()}!`;
     document.body.appendChild(welcomeMsg);
     setTimeout(() => {
         welcomeMsg.style.opacity = '0';
@@ -376,7 +427,7 @@ export async function initializePlayer() {
     const storedPlayerID = getPlayerIDFromStorage();
     if (storedPlayerID) {
         console.log('Found stored player ID:', storedPlayerID);
-        const playerFetched = await fetchPlayerData(storedPlayerID); //including bids
+        const playerFetched = await fetchPlayerData(storedPlayerID);
         if (!playerFetched) {
             console.log('Stored player not found in database, creating new player');
             await createNewPlayer();
@@ -385,5 +436,5 @@ export async function initializePlayer() {
         console.log('No player ID in storage, creating new player');
         await createNewPlayer();
     }
-    console.log('Player initialized:', playerState);
+    console.log('Player initialized:', getPlayerData());
 }

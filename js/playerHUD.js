@@ -1,6 +1,7 @@
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
 import { roomPopup } from './roomPopup.js'; // Import roomPopup to update buttons
+import { getPlayerUsername, getPlayerMoney, getPlayerRent, getPlayerDividends, getPlayerStocks, getActiveBids } from './player.js';
 
 /**
  * Player HUD Component
@@ -118,28 +119,18 @@ class PlayerHUD {
    */
   update(playerData) {
     // Update DOM elements with new data
-    document.getElementById('player-username').textContent = playerData.username;
-    document.getElementById('player-money').textContent = this.formatMoney(playerData.money);
-    
-    // Update rent and dividends data
-    const newRent = playerData.rent || 0;
-    const newDividends = playerData.dividends || 0;
-
-    document.getElementById('player-rent').textContent = this.formatMoney(newRent);
-    document.getElementById('player-dividends').textContent = this.formatMoney(newDividends);
+    document.getElementById('player-username').textContent = getPlayerUsername();
+    document.getElementById('player-money').textContent = this.formatMoney(getPlayerMoney());
+    document.getElementById('player-rent').textContent = this.formatMoney(getPlayerRent());
+    document.getElementById('player-dividends').textContent = this.formatMoney(getPlayerDividends());
 
     // Update stock values
-    const housingStock = document.querySelector('#stock-housing span');
-    const entertainmentStock = document.querySelector('#stock-entertainment span');
-    const weaponsStock = document.querySelector('#stock-weapons span');
-    const foodStock = document.querySelector('#stock-food span');
-    const technicalStock = document.querySelector('#stock-technical span');
-
-    housingStock.textContent = playerData.stock_housing;
-    entertainmentStock.textContent = playerData.stock_entertainment;
-    weaponsStock.textContent = playerData.stock_weapons;
-    foodStock.textContent = playerData.stock_food;
-    technicalStock.textContent = playerData.stock_technical;
+    const stocks = getPlayerStocks();
+    document.querySelector('#stock-housing span').textContent = stocks.housing;
+    document.querySelector('#stock-entertainment span').textContent = stocks.entertainment;
+    document.querySelector('#stock-weapons span').textContent = stocks.weapons;
+    document.querySelector('#stock-food span').textContent = stocks.food;
+    document.querySelector('#stock-technical span').textContent = stocks.technical;
 
     // Update room count
     const gameState = getLocalGameState();
@@ -157,25 +148,25 @@ class PlayerHUD {
     }
 
     // Update active bids information
-    if (playerData.activeBids) {
-      // Filter out bids with status "old_winner" or "old_loser"
+    const activeBids = getActiveBids();
+    //TODO: Do I need to add this filter back in?
+    /*
+    // Filter out bids with status "old_winner" or "old_loser"
       const activeBids = playerData.activeBids.filter(
         bid => bid.status !== 'old_winner' && bid.status !== 'old_loser'
-      );
+    */
+    const activeBidsCount = activeBids.length;
+    const activeBidsAmount = activeBids.reduce((total, bid) => total + bid.amount, 0);
 
-      const activeBidsCount = activeBids.length;
-      const activeBidsAmount = activeBids.reduce((total, bid) => total + bid.amount, 0);
+    document.getElementById('active-bids-count').textContent = activeBidsCount;
+    document.getElementById('active-bids-amount').textContent = this.formatMoney(activeBidsAmount);
 
-      document.getElementById('active-bids-count').textContent = activeBidsCount;
-      document.getElementById('active-bids-amount').textContent = this.formatMoney(activeBidsAmount);
-
-      // Add visual indicator if there are active bids
-      const bidsSection = document.querySelector('.bids-section');
-      if (activeBidsCount > 0) {
-        bidsSection.style.color = '#4CAF50'; // Green color when bids are active
-      } else {
-        bidsSection.style.color = ''; // Reset to default color
-      }
+    // Add visual indicator if there are active bids
+    const bidsSection = document.querySelector('.bids-section');
+    if (activeBidsCount > 0) {
+      bidsSection.style.color = '#4CAF50'; // Green color when bids are active
+    } else {
+      bidsSection.style.color = ''; // Reset to default color
     }
 
     console.log('HUD updated with new player data');

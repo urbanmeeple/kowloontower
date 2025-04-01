@@ -1,6 +1,6 @@
 import { config } from './config.js.php';
 import { getLocalGameState } from './state.js';
-import { getPlayerState } from './player.js';
+import { getPlayerUsername, getActiveBids } from './player.js';
 
 // Constants to replace magic numbers
 const GRID_LEFT_PADDING_CELLS = 100;  // Extra cells on left/right for horizontal centering
@@ -131,10 +131,10 @@ function adjustBrightness(hexColor, factor) {
  * @returns {Object|null} The bid object if found, otherwise null
  */
 function getPlayerBidForRoom(roomID) {
-  const playerState = getPlayerState();
-  if (!playerState.activeBids) return null;
+  const activeBids = getActiveBids();
+  if (!activeBids) return null;
   
-  return playerState.activeBids.find(bid => bid.roomID == roomID);
+  return activeBids.find(bid => bid.roomID == roomID);
 }
 
 export function renderGame(rooms) {
@@ -186,9 +186,9 @@ export function renderGame(rooms) {
     }
 
     // Get the player's username and players_rooms mapping from the local game state
-    const playerState = getPlayerState();
+    const playerUsername = getPlayerUsername();
+    const activeBids = getActiveBids();
     const gameState = getLocalGameState();
-    const playerUsername = playerState.username;
     const playersRooms = gameState.players_rooms || [];
 
     // Draw rooms using the provided rooms data
@@ -198,7 +198,7 @@ export function renderGame(rooms) {
       const roomSize = config.cellSize - 2;
 
       // Check if player has a bid on this room
-      const playerBid = getPlayerBidForRoom(room.roomID);
+      const playerBid = activeBids.find(bid => bid.roomID === room.roomID);
 
       if (room.status === 'new_constructed' || room.status === 'old_constructed') {
         const roomRect = new Two.Rectangle(roomX, roomY, roomSize, roomSize);
@@ -460,35 +460,37 @@ export function updatePlayerListWindow() {
     const content = document.querySelector('#player-list-window .floating-window-content');
     if (!content) return;
 
-    content.innerHTML = `
+    content.innerHTML = `= getPlayerUsername();
       <div class="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
       <table class="player-list">
-        <thead>
-          <tr>
+        <thead>s="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
+          <tr>lass="player-list">
             <th>Player</th>
             <th>Money</th> <!-- Move Money column here -->
-            <th>Rent</th>
-            <th>Dividends</th>
-          </tr>
-        </thead>
+            <th>Rent</th>h>
+            <th>Dividends</th>- Move Money column here -->
+          </tr>>Rent</th>
+        </thead>Dividends</th>
         <tbody>
           ${sortedPlayers.slice(0, 20).map(player => {
             const isActive = now - new Date(player.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS; // UTC handling
-            const isCurrentPlayer = player.username === getPlayerState().username;
-            const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
-            return `
-              <tr style="color: ${color}">
+            const isCurrentPlayer = player.username === getPlayerUsername();
+            const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';) <= FIVE_MINUTES_MS; // UTC handling
+            return `CurrentPlayer = player.username === playerUsername;
+              <tr style="color: ${color}">? 'green' : isActive ? 'black' : 'grey';
                 <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
                 <td class="player-money">${formatMoney(player.money || 0)}</td> <!-- Display formatted money -->
-                <td class="player-rent">${player.rent || 0}</td>
-                <td class="player-dividends">${player.dividends || 0}</td>
-              </tr>
-            `;
+                <td class="player-rent">${player.rent || 0}</td>'You' : player.username || 'Unknown'}</td>
+                <td class="player-dividends">${player.dividends || 0}</td></td> <!-- Display formatted money -->
+              </tr> class="player-rent">${player.rent || 0}</td>
+            `;  <td class="player-dividends">${player.dividends || 0}</td>
           }).join('')}
         </tbody>
-      </table>
-    `;
+      </table>oin('')}
+    `;  </tbody>
   } catch (error) {
     console.error("Error updating leaderboard window:", error);
+  } catch (error) {
+}   console.error("Error updating leaderboard window:", error);
   }
 }

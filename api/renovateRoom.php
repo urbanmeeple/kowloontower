@@ -43,11 +43,11 @@ try {
 
     $cost = $renovationCosts[$type];
 
-    // Check if a renovation is already pending for this room by the player
-    $existingRenovationStmt = $pdo->prepare("SELECT COUNT(*) FROM renovation_queue WHERE roomID = :roomID AND playerID = :playerID AND status = 'pending'");
-    $existingRenovationStmt->execute(['roomID' => $roomID, 'playerID' => $playerID]);
-    if ($existingRenovationStmt->fetchColumn() > 0) {
-        throw new Exception('A renovation is already pending for this room.');
+    // Check if a "pending" renovation already exists for this room and player
+    $existingPendingRenovationStmt = $pdo->prepare("SELECT COUNT(*) FROM renovation_queue WHERE roomID = :roomID AND playerID = :playerID AND status = 'pending'");
+    $existingPendingRenovationStmt->execute(['roomID' => $roomID, 'playerID' => $playerID]);
+    if ($existingPendingRenovationStmt->fetchColumn() > 0) {
+        throw new Exception('A pending renovation already exists for this room.');
     }
 
     // Check if the player has enough money
@@ -64,6 +64,17 @@ try {
 
     $pdo->commit();
     echo json_encode(['success' => true]);
+} catch (PDOException $e) {
+    $pdo->rollBack();
+    if ($e->getCode() === '23000') { // Handle duplicate entry error
+        writeLog("Duplicate renovation request detected: " . $e->getMessage(), $logFile);
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Duplicate renovation request.']);
+    } else {
+        writeLog("Database error: " . $e->getMessage(), $logFile);
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'A database error occurred.']);
+    }
 } catch (Exception $e) {
     $pdo->rollBack();
     writeLog("Renovation failed: " . $e->getMessage(), $logFile);

@@ -442,9 +442,11 @@ class RoomPopup {
             button.style.borderRadius = '5px';
             button.style.cursor = 'pointer';
 
-            // Disable button if a renovation is already pending
+            // Disable button if a "pending" renovation exists for the room
             const playerState = getPlayerState();
-            const isPending = playerState.activeRenovations.some(renovation => renovation.roomID === roomData.roomID);
+            const isPending = playerState.activeRenovations.some(
+                renovation => renovation.roomID === roomData.roomID && renovation.status === 'pending'
+            );
             if (isPending) {
                 button.disabled = true;
                 button.textContent = 'Renovation Pending';

@@ -569,12 +569,12 @@ function processRenovations() {
     $renovationCosts = ['small' => 100, 'big' => 500];
     $wearReduction = ['small' => 0.2, 'big' => 0.5];
 
-    // Fetch all pending "small" and "big" renovations
+    // Fetch all "pending" renovations
     $stmt = $pdo->query("SELECT rq.queueID, rq.roomID, rq.playerID, rq.type, r.wear, p.money 
                          FROM renovation_queue rq
                          JOIN rooms r ON rq.roomID = r.roomID
                          JOIN players p ON rq.playerID = p.playerID
-                         WHERE rq.status = 'pending' AND rq.type IN ('small', 'big')");
+                         WHERE rq.status = 'pending'");
     $renovations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($renovations as $renovation) {
@@ -587,24 +587,28 @@ function processRenovations() {
         $cost = $renovationCosts[$type];
         $reduction = $wearReduction[$type];
 
-        // Check if the player has enough money
-        if ($currentMoney < $cost) {
-            writeLog("Player {$playerID} does not have enough money for renovation {$queueID}.", $logFile);
-            continue;
+        try {
+            // Check if the player has enough money
+            if ($currentMoney < $cost) {
+                writeLog("Player {$playerID} does not have enough money for renovation {$queueID}.", $logFile);
+                continue;
+            }
+
+            // Deduct money and reduce wear
+            $newWear = max(0, $currentWear - $reduction);
+            $pdo->prepare("UPDATE players SET money = money - :cost WHERE playerID = :playerID")
+                ->execute(['cost' => $cost, 'playerID' => $playerID]);
+            $pdo->prepare("UPDATE rooms SET wear = :wear WHERE roomID = :roomID")
+                ->execute(['wear' => $newWear, 'roomID' => $roomID]);
+
+            // Mark renovation as completed
+            $pdo->prepare("UPDATE renovation_queue SET status = 'completed' WHERE queueID = :queueID")
+                ->execute(['queueID' => $queueID]);
+
+            writeLog("Processed renovation {$queueID}: player {$playerID}, room {$roomID}, type {$type}, new wear {$newWear}.", $logFile);
+        } catch (PDOException $e) {
+            writeLog("Database error during renovation processing: " . $e->getMessage(), $logFile);
         }
-
-        // Deduct money and reduce wear
-        $newWear = max(0, $currentWear - $reduction);
-        $pdo->prepare("UPDATE players SET money = money - :cost WHERE playerID = :playerID")
-            ->execute(['cost' => $cost, 'playerID' => $playerID]);
-        $pdo->prepare("UPDATE rooms SET wear = :wear WHERE roomID = :roomID")
-            ->execute(['wear' => $newWear, 'roomID' => $roomID]);
-
-        // Mark renovation as completed
-        $pdo->prepare("UPDATE renovation_queue SET status = 'completed' WHERE queueID = :queueID")
-            ->execute(['queueID' => $queueID]);
-
-        writeLog("Processed renovation {$queueID}: player {$playerID}, room {$roomID}, type {$type}, new wear {$newWear}.", $logFile);
     }
 }
 

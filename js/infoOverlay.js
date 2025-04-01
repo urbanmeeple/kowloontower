@@ -4,13 +4,15 @@
  * @param {number} dividends - The dividend income to display.
  */
 export function showIncomeOverlay(rent, dividends) {
+  console.log('showIncomeOverlay called with:', { rent, dividends }); // Debug log
+
   const overlayContainer = document.createElement('div');
   overlayContainer.style.position = 'fixed';
   overlayContainer.style.top = 'calc(var(--player-hud-height, 50px) + 10px)'; // Position below player HUD
   overlayContainer.style.left = '50%';
   overlayContainer.style.transform = 'translateX(-50%)'; // Center horizontally
   overlayContainer.style.textAlign = 'center';
-  overlayContainer.style.zIndex = '1000';
+  overlayContainer.style.zIndex = '2000'; // Ensure it is above the background
   overlayContainer.style.pointerEvents = 'none';
 
   // Rent income element
@@ -32,13 +34,17 @@ export function showIncomeOverlay(rent, dividends) {
   overlayContainer.appendChild(dividendsElement);
   document.body.appendChild(overlayContainer);
 
+  console.log('Overlay container appended to document body:', overlayContainer); // Debug log
+
   // Show for 2 seconds, then fade out over 2 seconds
   setTimeout(() => {
     overlayContainer.style.transition = 'opacity 2s';
     overlayContainer.style.opacity = '0';
+    console.log('Overlay fading out'); // Debug log
     setTimeout(() => {
       if (overlayContainer.parentNode) {
         overlayContainer.parentNode.removeChild(overlayContainer);
+        console.log('Overlay removed from DOM'); // Debug log
       }
     }, 2000);
   }, 2000);

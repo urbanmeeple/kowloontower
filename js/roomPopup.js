@@ -1,7 +1,7 @@
-import { getPlayerState, placeBid, getAvailableMoney, removeBid } from './player.js';
+import { getActiveBids, getAvailableMoney, removeBid, getActiveRenovations } from './player.js';
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
-import { isTimerAtZero } from './playerHUD.js'; // Import isTimerAtZero function
+import { isTimerAtZero } from './playerHUD.js';
 import { config } from './config.js.php';
 
 class RoomPopup {
@@ -85,8 +85,8 @@ class RoomPopup {
      * @returns {Object|null} The bid object or null if no bid exists
      */
     getExistingBid(roomID, type) {
-        const playerState = getPlayerState();
-        return playerState.activeBids.find(
+        const activeBids = getActiveBids();
+        return activeBids.find(
             bid => bid.roomID == roomID && bid.type === type
         );
     }
@@ -474,8 +474,8 @@ class RoomPopup {
             });
 
             // Check if a "pending" renovation exists for the room
-            const playerState = getPlayerState();
-            const isPending = playerState.activeRenovations.some(
+            const activeRenovations = getActiveRenovations();
+            const isPending = activeRenovations.some(
                 renovation => renovation.roomID === roomData.roomID && renovation.status === 'pending'
             );
 
@@ -525,8 +525,8 @@ class RoomPopup {
             return;
         }
 
-        const playerState = getPlayerState();
-        const isPending = playerState.activeRenovations.some(
+        const activeRenovations = getActiveRenovations();
+        const isPending = activeRenovations.some(
             renovation => renovation.roomID === this.currentRoom.roomID && renovation.status === 'pending'
         );
 

@@ -2,7 +2,7 @@ import { config } from './config.js.php';
 import { renderGame, resetBrightnessCycle, updatePlayerListWindow } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
-import { getPlayerUsername, fetchPlayerBids, getActiveBids } from './player.js'; // Updated imports
+import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends } from './player.js'; // Updated imports
 import { roomPopup } from './roomPopup.js'; // Ensure roomPopup is imported
 import { showIncomeOverlay } from './infoOverlay.js'; // Import showIncomeOverlay
 
@@ -172,8 +172,9 @@ async function checkAndFetchCache() {
       roomPopup.enableBidButtons();
 
       // Show income overlay with updated rent and dividends
-      const playerState = getPlayerState();
-      showIncomeOverlay(playerState.rent, playerState.dividends);
+      const rent = getPlayerRent();
+      const dividends = getPlayerDividends();
+      showIncomeOverlay(rent, dividends);
 
     } else {
       console.log("Cache is current, no update needed");

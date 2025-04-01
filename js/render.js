@@ -459,38 +459,37 @@ export function updatePlayerListWindow() {
 
     const content = document.querySelector('#player-list-window .floating-window-content');
     if (!content) return;
+    const playerUsername = getPlayerUsername();
 
-    content.innerHTML = `= getPlayerUsername();
+    content.innerHTML = `
       <div class="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
       <table class="player-list">
-        <thead>s="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
-          <tr>lass="player-list">
+        <thead>
+          <tr>
             <th>Player</th>
             <th>Money</th> <!-- Move Money column here -->
-            <th>Rent</th>h>
-            <th>Dividends</th>- Move Money column here -->
-          </tr>>Rent</th>
-        </thead>Dividends</th>
+            <th>Rent</th>
+            <th>Dividends</th>
+          </tr>
+        </thead>
         <tbody>
           ${sortedPlayers.slice(0, 20).map(player => {
             const isActive = now - new Date(player.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS; // UTC handling
-            const isCurrentPlayer = player.username === getPlayerUsername();
-            const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';) <= FIVE_MINUTES_MS; // UTC handling
-            return `CurrentPlayer = player.username === playerUsername;
-              <tr style="color: ${color}">? 'green' : isActive ? 'black' : 'grey';
+            const isCurrentPlayer = player.username === playerUsername;
+            const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
+            return `
+              <tr style="color: ${color}">
                 <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
                 <td class="player-money">${formatMoney(player.money || 0)}</td> <!-- Display formatted money -->
-                <td class="player-rent">${player.rent || 0}</td>'You' : player.username || 'Unknown'}</td>
-                <td class="player-dividends">${player.dividends || 0}</td></td> <!-- Display formatted money -->
-              </tr> class="player-rent">${player.rent || 0}</td>
-            `;  <td class="player-dividends">${player.dividends || 0}</td>
+                <td class="player-rent">${player.rent || 0}</td>
+                <td class="player-dividends">${player.dividends || 0}</td>
+              </tr>
+            `;
           }).join('')}
         </tbody>
-      </table>oin('')}
-    `;  </tbody>
+      </table>
+    `;
   } catch (error) {
     console.error("Error updating leaderboard window:", error);
-  } catch (error) {
-}   console.error("Error updating leaderboard window:", error);
   }
 }

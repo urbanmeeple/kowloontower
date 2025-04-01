@@ -156,7 +156,7 @@ class RoomPopup {
             this.enableBidButtons();
         }
         if (this.currentRoom) {
-            this.updateRenovationButtons();
+            this.updateRenovationButtons(); // Ensure renovation buttons are updated
         }
     }
 
@@ -495,7 +495,7 @@ class RoomPopup {
     }
 
     /**
-     * Update the renovation buttons dynamically based on the timer state
+     * Update the renovation buttons dynamically based on the timer state and pending renovations
      */
     updateRenovationButtons() {
         const playerState = getPlayerState();
@@ -535,6 +535,12 @@ class RoomPopup {
                 body: JSON.stringify({ roomID, type })
             });
             const result = await response.json();
+
+            if (result.success) {
+                // Update the renovation buttons to reflect the pending state
+                this.updateRenovationButtons();
+            }
+
             return result.success;
         } catch (error) {
             console.error('Renovation request failed:', error);

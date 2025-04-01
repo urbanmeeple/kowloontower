@@ -280,15 +280,6 @@ function processBids() {
                 continue; // Skip the winning bid
             }
 
-            // Refund money to losing bidders
-            // TODO: Should a loser really get money back or has the player actually not got any money deducted (only reserved)?
-            $refundStmt = $pdo->prepare("UPDATE players SET money = money + :amount, active_datetime = :active_datetime WHERE playerID = :playerID");
-            $refundStmt->execute([
-                'amount' => $bid['amount'],
-                'active_datetime' => $currentUtcDateTime,
-                'playerID' => $bid['playerID']
-            ]);
-
             // Mark the bid as "old_loser"
             $updateLosingBidStmt = $pdo->prepare("UPDATE bids SET status = 'old_loser' WHERE bidID = :bidID");
             $updateLosingBidStmt->execute(['bidID' => $bid['bidID']]);

@@ -1,4 +1,4 @@
-import { initRender, animateBackground, resizeCanvas } from './render.js';
+import { initRender, animateBackground, resizeCanvas, renderPlayerListWindow } from './render.js';
 import { initInputHandlers } from './input.js';
 import { startAutoUpdates, fetchUpdatedGameState } from './updater.js';
 import { initializePlayer } from './player.js';
@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize the player
     await initializePlayer();
     console.log("Player initialization complete.");
+    
+    // Render the player list window
+    renderPlayerListWindow();
     
     // Only now resize canvas and render (after we have game state and the player is initialized)
     resizeCanvas(gameCanvas);

@@ -467,7 +467,7 @@ export function updatePlayerListWindow() {
     const playerUsername = getPlayerUsername();
 
     content.innerHTML = `
-      <div class="player-list-header" style="color: #00FF00; font-family: 'Verdana', sans-serif; font-size: 12px; font-weight: bold;">
+      <div class="player-list-header" style="color: #00FF00; font-family: 'Verdana', sans-serif; font-size: 10px; font-weight: bold;">
         Players active/total: ${activeCount}/${players.length}
       </div>
       <table class="player-list">
@@ -484,9 +484,10 @@ export function updatePlayerListWindow() {
             const isActive = now - new Date(player.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS; // UTC handling
             const isCurrentPlayer = player.username === playerUsername;
             const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
+            const activeIndicator = isActive ? '<span style="color: #00FF00; font-size: 12px;">●</span> ' : ''; // Green circle for active players
             return `
-              <tr style="color: ${color}">
-                <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
+              <tr style="color: ${color}; font-size: 10px;"> <!-- Reduced font size -->
+                <td class="player-username">${activeIndicator}${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
                 <td class="player-money">${formatMoney(player.money || 0)}</td>
                 <td class="player-rent">${player.rent || 0}</td>
                 <td class="player-dividends">${player.dividends || 0}</td>

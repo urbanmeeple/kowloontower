@@ -195,7 +195,7 @@ input[type=range]::-moz-range-track {
   position: absolute;
   top: calc(5px + var(--player-hud-height, 0px)); /* Positioned 5px below the player HUD */
   left: 10px;
-  width: 400px; /* Increased width for more content space */
+  width: 300px; /* Reduced width */
   background-color: #000000; /* Black background for retro feel */
   border: 2px solid #00FF00; /* Neon green border */
   border-radius: 8px;
@@ -204,7 +204,7 @@ input[type=range]::-moz-range-track {
   overflow-y: auto; /* Allow vertical scrolling if needed */
   z-index: 1000;
   font-family: 'Verdana', sans-serif; /* Thicker and more readable font */
-  font-size: 12px; /* Keep text small */
+  font-size: 10px; /* Smaller font size */
   font-weight: bold; /* Thicker font for better readability */
   line-height: 1.5; /* Improved line spacing for readability */
   transition: height 0.3s ease;
@@ -254,6 +254,7 @@ input[type=range]::-moz-range-track {
   padding: 8px; /* Increased padding for better spacing */
   color: #00FF00; /* Neon green text */
   border-bottom: 1px solid #00FF00; /* Neon green row separator */
+  font-size: 10px; /* Smaller font size for table content */
 }
 
 .player-list th {

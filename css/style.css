@@ -192,7 +192,7 @@ input[type=range]::-moz-range-track {
   position: absolute;
   top: calc(50px + var(--player-hud-height, 0px));
   left: 10px;
-  width: calc(100% - 20px); /* Full width minus padding */
+  width: 320px; /* Slightly wider than before */
   background-color: white;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -258,7 +258,7 @@ input[type=range]::-moz-range-track {
 }
 
 .player-list .player-money {
-  text-align: right; /* Align money values to the right */
+  text-align: left; /* Align money values to the left, consistent with other columns */
   font-weight: bold; /* Highlight money values */
 }
 

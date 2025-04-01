@@ -189,18 +189,19 @@ input[type=range]::-moz-range-track {
 
 /* Floating player list window styles */
 .floating-window {
-  position: absolute; /* Changed to absolute for dynamic positioning */
-  top: calc(50px + var(--player-hud-height, 0px)); /* Dynamically position below the player HUD */
+  position: absolute;
+  top: calc(50px + var(--player-hud-height, 0px));
   left: 10px;
-  width: 300px; /* Increased width to avoid horizontal scroll */
+  width: calc(100% - 20px); /* Full width minus padding */
   background-color: white;
   border: 1px solid #ccc;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+  overflow-x: hidden; /* Prevent horizontal scroll bars */
+  overflow-y: auto; /* Allow vertical scrolling if needed */
   z-index: 1000;
   font-family: 'Arial', sans-serif;
-  font-size: 12px; /* Reduced font size by 20% */
+  font-size: 12px;
   transition: height 0.3s ease;
 }
 

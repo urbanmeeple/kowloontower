@@ -466,9 +466,9 @@ export function updatePlayerListWindow() {
         <thead>
           <tr>
             <th>Player</th>
+            <th>Money</th> <!-- Move Money column here -->
             <th>Rent</th>
             <th>Dividends</th>
-            <th>Money</th> <!-- New Money column -->
           </tr>
         </thead>
         <tbody>
@@ -479,9 +479,9 @@ export function updatePlayerListWindow() {
             return `
               <tr style="color: ${color}">
                 <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
+                <td class="player-money">${formatMoney(player.money || 0)}</td> <!-- Display formatted money -->
                 <td class="player-rent">${player.rent || 0}</td>
                 <td class="player-dividends">${player.dividends || 0}</td>
-                <td class="player-money">${formatMoney(player.money || 0)}</td> <!-- Display formatted money -->
               </tr>
             `;
           }).join('')}

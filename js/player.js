@@ -337,7 +337,14 @@ export async function fetchPlayerRenovations() {
         const data = await response.json();
         
         if (data.success) {
-            setActiveRenovations(data.renovations || []);
+            // Ensure each renovation has a valid cost
+            const renovationCosts = config.renovationCosts;
+            const renovations = data.renovations.map(renovation => ({
+                ...renovation,
+                cost: renovationCosts[renovation.type]?.cost || 0
+            }));
+
+            setActiveRenovations(renovations);
             console.log(`Loaded ${activeRenovations.length} active renovations for player`);
             
             playerHUD.update(getPlayerData());

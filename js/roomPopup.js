@@ -521,7 +521,6 @@ class RoomPopup {
      */
     updateRenovationButtons() {
         if (!this.renovateButtons || Object.keys(this.renovateButtons).length === 0) {
-            // If renovateButtons is not defined or empty, skip updating
             return;
         }
 
@@ -535,10 +534,6 @@ class RoomPopup {
             if (isPending) {
                 button.disabled = true;
                 button.textContent = 'Renovation Pending';
-                button.style.backgroundColor = '#9E9E9E'; // Gray
-            } else if (isTimerAtZero()) {
-                button.disabled = true;
-                button.textContent = 'Disabled';
                 button.style.backgroundColor = '#9E9E9E'; // Gray
             } else {
                 button.disabled = false;

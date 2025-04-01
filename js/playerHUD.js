@@ -219,6 +219,7 @@ class PlayerHUD {
         clearInterval(this.timerInterval); // Stop the timer when it reaches 0
         renderGame(getLocalGameState().rooms); // Re-render the game
         roomPopup.updatePopupButtons(); // Update popup buttons when timer reaches 0
+        this.update(getPlayerData()); // Refresh HUD data
       }
     }, 1000);
   }

@@ -68,7 +68,7 @@ try {
 
     writeLog("Fetched room data: " . json_encode($roomData), $logFile);
 
-    if ($roomData['status'] !== 'old_constructed') {
+    if ($roomData['status'] !== 'new_constructed' && $roomData['status'] !== 'old_constructed') {
         writeLog("Room status is not eligible for renovation: status = {$roomData['status']}.", $logFile);
         throw new Exception('Room not eligible for renovation.');
     }

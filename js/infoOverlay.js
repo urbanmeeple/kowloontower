@@ -6,9 +6,9 @@
 export function showIncomeOverlay(rent, dividends) {
   const overlayContainer = document.createElement('div');
   overlayContainer.style.position = 'fixed';
-  overlayContainer.style.top = '50%';
+  overlayContainer.style.top = 'calc(var(--player-hud-height, 50px) + 10px)'; // Position below player HUD
   overlayContainer.style.left = '50%';
-  overlayContainer.style.transform = 'translate(-50%, -50%)';
+  overlayContainer.style.transform = 'translateX(-50%)'; // Center horizontally
   overlayContainer.style.textAlign = 'center';
   overlayContainer.style.zIndex = '1000';
   overlayContainer.style.pointerEvents = 'none';

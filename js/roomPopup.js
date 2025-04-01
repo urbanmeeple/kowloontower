@@ -460,9 +460,9 @@ class RoomPopup {
             const cost = config.renovationCosts[type].cost; // Fetch cost from config
             const wearReduction = config.renovationCosts[type].wearReduction; // Fetch wear reduction from config
             const button = document.createElement('button');
-            button.dataset.originalText = `${label} - ${this.formatMoney(cost)} (${wearReduction} wear reduction)`; // Corrected text
+            button.dataset.originalText = `${label} ${this.formatMoney(cost)} (-${wearReduction})`; // Updated text format
             button.dataset.originalColor = '#4CAF50'; // Default green color
-            button.textContent = button.dataset.originalText; // Use textContent to avoid rendering HTML tags
+            button.textContent = button.dataset.originalText; // Use textContent to set the button text
             Object.assign(button.style, {
                 margin: '5px',
                 padding: '10px',

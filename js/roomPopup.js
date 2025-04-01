@@ -419,6 +419,73 @@ class RoomPopup {
         return bidContainer;
     }
 
+    /**
+     * Add a renovation section to the popup
+     * @param {Object} roomData - Data about the room being renovated
+     */
+    addRenovationSection(roomData) {
+        const renovationSection = document.createElement('div');
+        renovationSection.style.marginTop = '20px';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Renovate';
+        renovationSection.appendChild(title);
+
+        const createButton = (label, type) => {
+            const button = document.createElement('button');
+            button.textContent = label;
+            button.style.margin = '5px';
+            button.style.padding = '10px';
+            button.style.backgroundColor = '#4CAF50';
+            button.style.color = 'white';
+            button.style.border = 'none';
+            button.style.borderRadius = '5px';
+            button.style.cursor = 'pointer';
+
+            button.addEventListener('click', async () => {
+                button.disabled = true;
+                button.textContent = 'Processing...';
+
+                const success = await this.sendRenovationRequest(roomData.roomID, type);
+                if (success) {
+                    button.textContent = `${label} Renovation Done!`;
+                } else {
+                    button.textContent = 'Failed. Try Again.';
+                    button.disabled = false;
+                }
+            });
+
+            return button;
+        };
+
+        renovationSection.appendChild(createButton('Small', 'small'));
+        renovationSection.appendChild(createButton('Big', 'big'));
+        renovationSection.appendChild(createButton('Amazing', 'amazing'));
+
+        this.popupContainer.appendChild(renovationSection);
+    }
+
+    /**
+     * Send a renovation request to the server
+     * @param {number} roomID - The room ID to renovate
+     * @param {string} type - The type of renovation ('small', 'big', 'amazing')
+     * @returns {Promise<boolean>} - Whether the request was successful
+     */
+    async sendRenovationRequest(roomID, type) {
+        try {
+            const response = await fetch('/api/renovateRoom.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomID, type })
+            });
+            const result = await response.json();
+            return result.success;
+        } catch (error) {
+            console.error('Renovation request failed:', error);
+            return false;
+        }
+    }
+
     show(roomData) {
         // Store the current room data for reference
         this.currentRoom = roomData;
@@ -502,22 +569,9 @@ class RoomPopup {
             roomRent.style.marginBottom = '10px';
             this.popupContainer.appendChild(roomRent);
 
-            // Renovate button
-            this.renovateButton = document.createElement('button');
-            this.renovateButton.textContent = 'Renovate';
-            this.renovateButton.dataset.originalText = 'Renovate'; // Store original text
-            this.renovateButton.dataset.originalColor = '#4CAF50'; // Store original color
-            Object.assign(this.renovateButton.style, {
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontSize: '14px'
-            });
-            this.popupContainer.appendChild(this.renovateButton);
-
+            // Add renovation section
+            this.addRenovationSection(roomData);
+            
             // Add bid to buy interface
             const buyBidInterface = this.createBidInterface('buy', roomData);
             this.popupContainer.appendChild(buyBidInterface);

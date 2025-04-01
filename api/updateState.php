@@ -164,6 +164,11 @@ function isAdjacentToConstructed($x, $y, $constructedCoords) {
 function updateRoomStatuses() {
     global $pdo, $logFile;
 
+    // Reset all rooms' in_danger attribute to 0
+    $resetInDangerStmt = $pdo->prepare("UPDATE rooms SET in_danger = 0");
+    $resetInDangerStmt->execute();
+    writeLog("Reset 'in_danger' attribute for all rooms to 0", $logFile);
+
     // Change all rooms with status "new_constructed" to "old_constructed"
     $updateRoomStatusStmt = $pdo->prepare("UPDATE rooms SET status = 'old_constructed' WHERE status = 'new_constructed'");
     $updateRoomStatusStmt->execute();
@@ -499,7 +504,7 @@ function updatePlayerDividends() {
     $sectorDividends = [];
     
     while ($row = $sectorDividendsStmt->fetch(PDO::FETCH_ASSOC)) {
-        $sectorDividends[$row['sector_type']] = $row['average_cashflow_per_room'];
+        $sectorDividends[$row['sector_type']] = max(0, $row['average_cashflow_per_room']); // Ensure non-negative values
     }
     
     // Get all players
@@ -532,7 +537,7 @@ function updatePlayerDividends() {
             $avgCashflow = $sectorDividends[$type] ?? 0; // Default to 0 if not found
             
             // Calculate dividend for this stock type
-            $dividend = ($stockCount * $avgCashflow) / $dividendFactor;
+            $dividend = max(0, ($stockCount * $avgCashflow) / $dividendFactor); // Ensure non-negative dividends
             $totalDividends += $dividend;
         }
         

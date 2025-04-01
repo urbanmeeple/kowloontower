@@ -501,3 +501,53 @@ export function updatePlayerListWindow() {
     console.error("Error updating leaderboard window:", error);
   }
 }
+
+/**
+ * Initializes the help window with a toggleable question mark button.
+ */
+export function initHelpWindow() {
+  try {
+    // Create the help button
+    const helpButton = document.createElement('div');
+    helpButton.id = 'help-button';
+    helpButton.textContent = '?';
+    helpButton.addEventListener('click', () => {
+      const helpWindow = document.getElementById('help-window');
+      helpWindow.classList.toggle('visible');
+    });
+
+    // Create the help window
+    const helpWindow = document.createElement('div');
+    helpWindow.id = 'help-window';
+
+    // Add close button to the help window
+    const closeButton = document.createElement('div');
+    closeButton.className = 'help-close-button';
+    closeButton.textContent = 'Close';
+    closeButton.addEventListener('click', () => {
+      helpWindow.classList.remove('visible');
+    });
+
+    // Add help text
+    const helpContent = document.createElement('div');
+    helpContent.className = 'help-content';
+    helpContent.innerHTML = `
+      Start by placing a bid on a planned room in the tower. The planned rooms have a paler colour. Each new day (~each minute) the player that placed the highest bid gets to construct the room. And some new planned rooms are added to the tower for a new round of bidding.<br><br>
+      Renovate when the Wear level increases, or the rooms will be destroyed (at 1.0 wear).<br><br>
+      The rooms give you rent income based on the location within the tower - try to figure out the rules :) Good luck!<br><br>
+      //Joel
+    `;
+
+    helpWindow.appendChild(closeButton);
+    helpWindow.appendChild(helpContent);
+
+    // Append elements to the body
+    document.body.appendChild(helpButton);
+    document.body.appendChild(helpWindow);
+  } catch (error) {
+    console.error("Error initializing help window:", error);
+  }
+}
+
+// Call the function to initialize the help window
+initHelpWindow();

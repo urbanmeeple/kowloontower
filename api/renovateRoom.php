@@ -10,7 +10,10 @@ $data = json_decode(file_get_contents('php://input'), true);
 $roomID = $data['roomID'] ?? null;
 $type = $data['type'] ?? null;
 
+writeLog("Received input: roomID = {$roomID}, type = {$type}", $logFile);
+
 if (!$roomID || !$type) {
+    writeLog("Invalid input: roomID or type is missing.", $logFile);
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid input.']);
     exit;
@@ -25,34 +28,53 @@ try {
                            JOIN players p ON pr.playerID = p.playerID
                            WHERE r.roomID = :roomID");
     $stmt->execute(['roomID' => $roomID]);
-    $room = $stmt->fetch(PDO::FETCH_ASSOC);
+    $roomPlayerData = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$room || $room['status'] !== 'old_constructed') {
+    if (!$roomPlayerData) {
+        writeLog("Room not found for roomID = {$roomID}.", $logFile);
+        throw new Exception('Room not found.');
+    }
+
+    writeLog("Fetched room and player data: " . json_encode($roomPlayerData), $logFile);
+
+    if ($roomPlayerData['status'] !== 'old_constructed') {
+        writeLog("Room status is not eligible for renovation: status = {$roomPlayerData['status']}.", $logFile);
         throw new Exception('Room not eligible for renovation.');
     }
 
-    $playerID = $room['playerID'];
-    $currentMoney = $room['money'];
+    $playerID = $roomPlayerData['playerID'];
+    $currentMoney = $roomPlayerData['money'];
+    $currentWear = $roomPlayerData['wear'];
+
+    writeLog("Player ID: {$playerID}, Current Money: {$currentMoney}, Current Wear: {$currentWear}", $logFile);
 
     // Fetch renovation costs from config
     $renovationCosts = $clientConfig['renovationCosts'];
 
     if (!isset($renovationCosts[$type])) {
+        writeLog("Invalid renovation type: {$type}.", $logFile);
         throw new Exception('Invalid renovation type.');
     }
 
     $cost = $renovationCosts[$type]['cost'];
     $wearReduction = $renovationCosts[$type]['wearReduction'];
 
+    writeLog("Renovation type: {$type}, Cost: {$cost}, Wear Reduction: {$wearReduction}", $logFile);
+
     // Check if a "pending" renovation already exists for this room and player
     $existingPendingRenovationStmt = $pdo->prepare("SELECT COUNT(*) FROM renovation_queue WHERE roomID = :roomID AND playerID = :playerID AND status = 'pending'");
     $existingPendingRenovationStmt->execute(['roomID' => $roomID, 'playerID' => $playerID]);
-    if ($existingPendingRenovationStmt->fetchColumn() > 0) {
+    $pendingCount = $existingPendingRenovationStmt->fetchColumn();
+
+    writeLog("Pending renovations for roomID = {$roomID}, playerID = {$playerID}: {$pendingCount}", $logFile);
+
+    if ($pendingCount > 0) {
         throw new Exception('A pending renovation already exists for this room.');
     }
 
     // Check if the player has enough money
     if ($currentMoney < $cost) {
+        writeLog("Insufficient funds: Current Money = {$currentMoney}, Required = {$cost}.", $logFile);
         throw new Exception('Insufficient funds.');
     }
 
@@ -60,26 +82,32 @@ try {
     $queueStmt = $pdo->prepare("INSERT INTO renovation_queue (roomID, playerID, type, status) VALUES (:roomID, :playerID, :type, 'pending')");
     $queueStmt->execute(['roomID' => $roomID, 'playerID' => $playerID, 'type' => $type]);
 
+    writeLog("Renovation request added to queue: roomID = {$roomID}, playerID = {$playerID}, type = {$type}.", $logFile);
+
     // Apply wear reduction to the room
-    $updateWearStmt = $pdo->prepare("UPDATE rooms SET wear = GREATEST(0, wear - :wearReduction) WHERE roomID = :roomID");
-    $updateWearStmt->execute(['wearReduction' => $wearReduction, 'roomID' => $roomID]);
+    $newWear = max(0, $currentWear - $wearReduction);
+    $updateWearStmt = $pdo->prepare("UPDATE rooms SET wear = :newWear WHERE roomID = :roomID");
+    $updateWearStmt->execute(['newWear' => $newWear, 'roomID' => $roomID]);
+
+    writeLog("Room wear updated: roomID = {$roomID}, Old Wear = {$currentWear}, New Wear = {$newWear}.", $logFile);
+
+    // Deduct the cost from the player's money
+    $newMoney = $currentMoney - $cost;
+    $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = :newMoney WHERE playerID = :playerID");
+    $updateMoneyStmt->execute(['newMoney' => $newMoney, 'playerID' => $playerID]);
+
+    writeLog("Player money updated: playerID = {$playerID}, Old Money = {$currentMoney}, New Money = {$newMoney}.", $logFile);
 
     // Log the renovation request
-    writeLog("Renovation request queued: player {$playerID}, room {$roomID}, type {$type}.", $logFile);
+    writeLog("Renovation request successfully processed: playerID = {$playerID}, roomID = {$roomID}, type = {$type}.", $logFile);
 
     $pdo->commit();
     echo json_encode(['success' => true]);
 } catch (PDOException $e) {
     $pdo->rollBack();
-    if ($e->getCode() === '23000') { // Handle duplicate entry error
-        writeLog("Duplicate renovation request detected: " . $e->getMessage(), $logFile);
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Duplicate renovation request.']);
-    } else {
-        writeLog("Database error: " . $e->getMessage(), $logFile);
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'A database error occurred.']);
-    }
+    writeLog("Database error: " . $e->getMessage(), $logFile);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'A database error occurred.']);
 } catch (Exception $e) {
     $pdo->rollBack();
     writeLog("Renovation failed: " . $e->getMessage(), $logFile);

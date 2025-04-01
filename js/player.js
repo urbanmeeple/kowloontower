@@ -319,6 +319,79 @@ export async function fetchPlayerBids() {
 }
 
 /**
+ * Fetch player's active renovations from the server.
+ * @returns {Promise<boolean>} True if successful.
+ */
+export async function fetchPlayerRenovations() {
+    try {
+        const playerID = getPlayerIDFromStorage();
+        if (!playerID) return false;
+
+        const response = await fetch(`api/renovateRoom.php?playerID=${encodeURIComponent(playerID)}`);
+        
+        if (!response.ok) {
+            console.error('Server error when fetching renovations:', await response.text());
+            return false;
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            setActiveRenovations(data.renovations || []);
+            console.log(`Loaded ${activeRenovations.length} active renovations for player`);
+            
+            playerHUD.update(getPlayerData());
+            return true;
+        } else {
+            console.error('Failed to fetch player renovations:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error fetching player renovations:", error);
+        return false;
+    }
+}
+
+/**
+ * Request a renovation for a room.
+ * @param {number} roomID - The ID of the room to renovate.
+ * @param {string} type - The type of renovation ('small', 'big', 'amazing').
+ * @returns {Promise<boolean>} True if the renovation request was successful.
+ */
+export async function requestRenovation(roomID, type) {
+    try {
+        const response = await fetch('api/renovateRoom.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roomID: roomID,
+                type: type,
+                playerID: getPlayerIDFromStorage()
+            })
+        });
+
+        if (!response.ok) {
+            console.error('Server error when requesting renovation:', await response.text());
+            return false;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            console.log(`Renovation requested: Room ${roomID}, Type: ${type}`);
+            await fetchPlayerRenovations(); // Refresh active renovations
+            playerHUD.update(getPlayerData());
+            return true;
+        } else {
+            console.error('Failed to request renovation:', data.error);
+            return false;
+        }
+    } catch (error) {
+        console.error("Error requesting renovation:", error);
+        return false;
+    }
+}
+
+/**
  * Save playerID to localStorage.
  * @param {string} playerID - The playerID to save.
  */
@@ -344,6 +417,7 @@ export async function fetchPlayerData(playerID) {
             savePlayerUsernameToStorage(data.player.username);
             
             await fetchPlayerBids();
+            await fetchPlayerRenovations();
             
             playerHUD.update(getPlayerData());
             showWelcomeMessage(false);

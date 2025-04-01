@@ -437,9 +437,10 @@ class RoomPopup {
         renovationSection.appendChild(title);
 
         const createButton = (label, type) => {
+            const cost = config.renovationCosts[type].cost; // Fetch cost from config
+            const wearReduction = config.renovationCosts[type].wearReduction; // Fetch wear reduction from config
             const button = document.createElement('button');
-            const cost = config.renovationCosts[type]; // Fetch cost from config
-            button.dataset.originalText = `${label} (${this.formatMoney(cost)})`;
+            button.dataset.originalText = `${label} ${this.formatMoney(cost)} -${wearReduction}`;
             button.dataset.originalColor = '#4CAF50'; // Default green color
             button.textContent = button.dataset.originalText;
             Object.assign(button.style, {

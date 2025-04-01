@@ -41,7 +41,8 @@ try {
         throw new Exception('Invalid renovation type.');
     }
 
-    $cost = $renovationCosts[$type];
+    $cost = $renovationCosts[$type]['cost'];
+    $wearReduction = $renovationCosts[$type]['wearReduction'];
 
     // Check if a "pending" renovation already exists for this room and player
     $existingPendingRenovationStmt = $pdo->prepare("SELECT COUNT(*) FROM renovation_queue WHERE roomID = :roomID AND playerID = :playerID AND status = 'pending'");
@@ -58,6 +59,10 @@ try {
     // Add renovation request to the queue
     $queueStmt = $pdo->prepare("INSERT INTO renovation_queue (roomID, playerID, type, status) VALUES (:roomID, :playerID, :type, 'pending')");
     $queueStmt->execute(['roomID' => $roomID, 'playerID' => $playerID, 'type' => $type]);
+
+    // Apply wear reduction to the room
+    $updateWearStmt = $pdo->prepare("UPDATE rooms SET wear = GREATEST(0, wear - :wearReduction) WHERE roomID = :roomID");
+    $updateWearStmt->execute(['wearReduction' => $wearReduction, 'roomID' => $roomID]);
 
     // Log the renovation request
     writeLog("Renovation request queued: player {$playerID}, room {$roomID}, type {$type}.", $logFile);

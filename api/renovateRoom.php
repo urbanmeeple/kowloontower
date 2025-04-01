@@ -33,36 +33,34 @@ try {
 
     $playerID = $room['playerID'];
     $currentMoney = $room['money'];
-    $currentWear = $room['wear'];
 
-    // Define renovation costs and wear reduction
+    // Define renovation costs
     $renovationCosts = ['small' => 100, 'big' => 500, 'amazing' => 1000];
-    $wearReduction = ['small' => 0.2, 'big' => 0.5, 'amazing' => 1.0];
 
     if (!isset($renovationCosts[$type])) {
         throw new Exception('Invalid renovation type.');
     }
 
     $cost = $renovationCosts[$type];
-    $reduction = $wearReduction[$type];
 
+    // Check if a renovation is already pending for this room by the player
+    $existingRenovationStmt = $pdo->prepare("SELECT COUNT(*) FROM renovation_queue WHERE roomID = :roomID AND playerID = :playerID AND status = 'pending'");
+    $existingRenovationStmt->execute(['roomID' => $roomID, 'playerID' => $playerID]);
+    if ($existingRenovationStmt->fetchColumn() > 0) {
+        throw new Exception('A renovation is already pending for this room.');
+    }
+
+    // Check if the player has enough money
     if ($currentMoney < $cost) {
         throw new Exception('Insufficient funds.');
     }
 
-    // Deduct money and update wear
-    $newWear = max(0, $currentWear - $reduction);
-    $pdo->prepare("UPDATE players SET money = money - :cost WHERE playerID = :playerID")
-        ->execute(['cost' => $cost, 'playerID' => $playerID]);
-    $pdo->prepare("UPDATE rooms SET wear = :wear WHERE roomID = :roomID")
-        ->execute(['wear' => $newWear, 'roomID' => $roomID]);
+    // Add renovation request to the queue
+    $queueStmt = $pdo->prepare("INSERT INTO renovation_queue (roomID, playerID, type, status) VALUES (:roomID, :playerID, :type, 'pending')");
+    $queueStmt->execute(['roomID' => $roomID, 'playerID' => $playerID, 'type' => $type]);
 
-    // Handle amazing renovation
-    if ($type === 'amazing') {
-        $queueStmt = $pdo->prepare("INSERT INTO renovation_queue (roomID, playerID, status) VALUES (:roomID, :playerID, 'pending')");
-        $queueStmt->execute(['roomID' => $roomID, 'playerID' => $playerID]);
-        writeLog("Amazing renovation queued for room {$roomID}.", $logFile);
-    }
+    // Log the renovation request
+    writeLog("Renovation request queued: player {$playerID}, room {$roomID}, type {$type}.", $logFile);
 
     $pdo->commit();
     echo json_encode(['success' => true]);

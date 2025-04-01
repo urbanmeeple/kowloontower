@@ -16,7 +16,8 @@ let playerState = {
     stock_weapons: 0, 
     stock_food: 0,
     stock_technical: 0,
-    activeBids: [] // Track active bids placed by the player
+    activeBids: [], // Track active bids placed by the player
+    activeRenovations: [] // Track active renovations
 };
 
 /**
@@ -36,11 +37,14 @@ export function getTotalActiveBidsAmount() {
 }
 
 /**
- * Calculate the player's available money (total minus active bids)
- * @returns {number} Available money to spend
+ * Get the player's available money after accounting for reserved money (bids + renovations).
+ * @returns {number} The available money.
  */
 export function getAvailableMoney() {
-    return playerState.money - getTotalActiveBidsAmount();
+    const playerState = getPlayerState();
+    const reservedMoney = playerState.activeBids.reduce((sum, bid) => sum + bid.amount, 0) +
+                          playerState.activeRenovations.reduce((sum, renovation) => sum + renovation.cost, 0);
+    return playerState.money - reservedMoney;
 }
 
 /**
@@ -258,7 +262,8 @@ export async function fetchPlayerData(playerID) {
                 rent: data.player.rent || 0,           // Ensure rent is set
                 dividends: data.player.dividends || 0, // Ensure dividends is set
                 isNewPlayer: false,
-                activeBids: playerState.activeBids || [] // Preserve active bids if they exist
+                activeBids: playerState.activeBids || [], // Preserve active bids if they exist
+                activeRenovations: playerState.activeRenovations || [] // Preserve active renovations if they exist
             };
             savePlayerUsernameToStorage(data.player.username); // Save username to localStorage
             
@@ -300,7 +305,8 @@ export async function createNewPlayer() {
                 rent: data.player.rent || 0,           // Ensure rent is set
                 dividends: data.player.dividends || 0, // Ensure dividends is set
                 roomCount: 0,
-                isNewPlayer: true
+                isNewPlayer: true,
+                activeRenovations: []
             };
             savePlayerIDToStorage(data.player.playerID);
             savePlayerUsernameToStorage(data.player.username); // Save username to localStorage

@@ -442,13 +442,22 @@ class RoomPopup {
             button.style.borderRadius = '5px';
             button.style.cursor = 'pointer';
 
+            // Disable button if a renovation is already pending
+            const playerState = getPlayerState();
+            const isPending = playerState.activeRenovations.some(renovation => renovation.roomID === roomData.roomID);
+            if (isPending) {
+                button.disabled = true;
+                button.textContent = 'Renovation Pending';
+                button.style.backgroundColor = '#9E9E9E'; // Gray
+            }
+
             button.addEventListener('click', async () => {
                 button.disabled = true;
                 button.textContent = 'Processing...';
 
                 const success = await this.sendRenovationRequest(roomData.roomID, type);
                 if (success) {
-                    button.textContent = `${label} Renovation Done!`;
+                    button.textContent = `${label} Renovation Queued!`;
                 } else {
                     button.textContent = 'Failed. Try Again.';
                     button.disabled = false;

@@ -49,7 +49,7 @@ canvas {
   top: 0;
   left: 0;
   right: 0;
-  height: 50px;
+  height: auto; /* Allow dynamic height */
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
   display: flex;
@@ -189,10 +189,10 @@ input[type=range]::-moz-range-track {
 
 /* Floating player list window styles */
 .floating-window {
-  position: fixed;
-  top: 10%;
+  position: absolute; /* Changed to absolute for dynamic positioning */
+  top: calc(50px + var(--player-hud-height, 0px)); /* Dynamically position below the player HUD */
   left: 10px;
-  width: 250px;
+  width: 300px; /* Increased width to avoid horizontal scroll */
   background-color: white;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -200,7 +200,7 @@ input[type=range]::-moz-range-track {
   overflow: hidden;
   z-index: 1000;
   font-family: 'Arial', sans-serif;
-  font-size: 14px;
+  font-size: 12px; /* Reduced font size by 20% */
   transition: height 0.3s ease;
 }
 
@@ -216,6 +216,14 @@ input[type=range]::-moz-range-track {
   cursor: pointer;
   text-align: center;
   border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.floating-window-title .toggle-icon {
+  font-size: 14px;
+  margin-left: 10px;
 }
 
 .floating-window-content {
@@ -230,15 +238,26 @@ input[type=range]::-moz-range-track {
 }
 
 .player-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.player-list li {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
+.player-list th, .player-list td {
+  text-align: left;
+  padding: 5px;
+}
+
+.player-list th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+.player-list td {
+  border-bottom: 1px solid #ccc;
+}
+
+.player-list tr:last-child td {
+  border-bottom: none;
 }
 
 /* Responsive adjustments for small screens */
@@ -265,4 +284,13 @@ input[type=range]::-moz-range-track {
   .bids-section {
     order: 2; /* Move bids section below username/money for better layout */
   }
+
+  :root {
+    --player-hud-height: auto; /* Allow the height to adjust dynamically */
+  }
+}
+
+/* Add a CSS variable to track the height of the player HUD */
+:root {
+  --player-hud-height: 50px; /* Default height of the player HUD */
 }

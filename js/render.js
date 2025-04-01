@@ -395,7 +395,7 @@ export function resizeCanvas(gameCanvas) {
 }
 
 /**
- * Renders the floating player list window.
+ * Renders the floating leaderboard window.
  */
 export function renderPlayerListWindow() {
   try {
@@ -405,9 +405,11 @@ export function renderPlayerListWindow() {
 
     const titleBar = document.createElement('div');
     titleBar.className = 'floating-window-title';
-    titleBar.textContent = 'Player List';
+    titleBar.innerHTML = 'Leaderboard <span class="toggle-icon">▼</span>';
     titleBar.addEventListener('click', () => {
       container.classList.toggle('minimized');
+      const icon = titleBar.querySelector('.toggle-icon');
+      icon.textContent = container.classList.contains('minimized') ? '▲' : '▼';
     });
 
     const content = document.createElement('div');
@@ -419,12 +421,12 @@ export function renderPlayerListWindow() {
 
     updatePlayerListWindow(); // Initial render
   } catch (error) {
-    console.error("Error rendering player list window:", error);
+    console.error("Error rendering leaderboard window:", error);
   }
 }
 
 /**
- * Updates the content of the player list window.
+ * Updates the content of the leaderboard window.
  */
 export function updatePlayerListWindow() {
   try {
@@ -448,23 +450,31 @@ export function updatePlayerListWindow() {
 
     content.innerHTML = `
       <div class="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
-      <ul class="player-list">
-        ${sortedPlayers.slice(0, 20).map(player => {
-          const isActive = now - new Date(player.active_datetime).getTime() <= FIVE_MINUTES_MS;
-          const isCurrentPlayer = player.username === getPlayerState().username;
-          const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
-          return `
-            <li style="color: ${color}">
-              <span class="player-username">${isCurrentPlayer ? 'You' : player.username}</span>
-              <span class="player-money">💰 ${player.money}</span>
-              <span class="player-rent">🏠 ${player.rent}</span>
-              <span class="player-dividends">📈 ${player.dividends}</span>
-            </li>
-          `;
-        }).join('')}
-      </ul>
+      <table class="player-list">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Rent</th>
+            <th>Dividends</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sortedPlayers.slice(0, 20).map(player => {
+            const isActive = now - new Date(player.active_datetime).getTime() <= FIVE_MINUTES_MS;
+            const isCurrentPlayer = player.username === getPlayerState().username;
+            const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
+            return `
+              <tr style="color: ${color}">
+                <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
+                <td class="player-rent">${player.rent || 0}</td>
+                <td class="player-dividends">${player.dividends || 0}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
     `;
   } catch (error) {
-    console.error("Error updating player list window:", error);
+    console.error("Error updating leaderboard window:", error);
   }
 }

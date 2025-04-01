@@ -4,6 +4,17 @@ import { startAutoUpdates, fetchUpdatedGameState } from './updater.js';
 import { initializePlayer } from './player.js';
 import { roomPopup } from './roomPopup.js'; // Import roomPopup for proper initialization
 
+/**
+ * Update the CSS variable for the player HUD height dynamically.
+ */
+function updatePlayerHUDHeight() {
+  const playerHUD = document.getElementById('player-hud');
+  if (playerHUD) {
+    const hudHeight = playerHUD.offsetHeight;
+    document.documentElement.style.setProperty('--player-hud-height', `${hudHeight}px`);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const gameCanvas = document.getElementById('gameCanvas');
@@ -29,6 +40,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Render the player list window
     renderPlayerListWindow();
     
+    // Update the player HUD height dynamically
+    updatePlayerHUDHeight();
+    
     // Only now resize canvas and render (after we have game state and the player is initialized)
     resizeCanvas(gameCanvas);
     
@@ -36,7 +50,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     startAutoUpdates();
     
     // Attach resize event listener
-    window.addEventListener('resize', () => resizeCanvas(gameCanvas));
+    window.addEventListener('resize', () => {
+      resizeCanvas(gameCanvas);
+      updatePlayerHUDHeight(); // Update HUD height on window resize
+    });
     
   } catch (error) {
     console.error("Error in main initialization:", error);

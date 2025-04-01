@@ -13,6 +13,7 @@ class RoomPopup {
 
         this.setupStyles();
         this.currentRoom = null;
+        this.renovateButtons = {}; // Initialize renovateButtons as an empty object
     }
 
     setupStyles() {
@@ -498,6 +499,11 @@ class RoomPopup {
      * Update the renovation buttons dynamically based on the timer state and pending renovations
      */
     updateRenovationButtons() {
+        if (!this.renovateButtons || Object.keys(this.renovateButtons).length === 0) {
+            // If renovateButtons is not defined or empty, skip updating
+            return;
+        }
+
         const playerState = getPlayerState();
         const isPending = playerState.activeRenovations.some(
             renovation => renovation.roomID === this.currentRoom.roomID && renovation.status === 'pending'

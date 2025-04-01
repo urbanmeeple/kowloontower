@@ -190,9 +190,9 @@ input[type=range]::-moz-range-track {
 /* Floating player list window styles */
 .floating-window {
   position: absolute;
-  top: calc(50px + var(--player-hud-height, 0px));
+  top: calc(5px + var(--player-hud-height, 0px)); /* Positioned 5px below the player HUD */
   left: 10px;
-  width: 360px; /* Increased width to avoid scroll bar */
+  width: 400px; /* Increased width for more content space */
   background-color: #000000; /* Black background for retro feel */
   border: 2px solid #00FF00; /* Neon green border */
   border-radius: 8px;
@@ -200,8 +200,9 @@ input[type=range]::-moz-range-track {
   overflow-x: hidden; /* Prevent horizontal scroll bars */
   overflow-y: auto; /* Allow vertical scrolling if needed */
   z-index: 1000;
-  font-family: 'Courier New', monospace; /* Retro gaming font */
-  font-size: 14px; /* Slightly larger font for better readability */
+  font-family: 'Verdana', sans-serif; /* Thicker and more readable font */
+  font-size: 12px; /* Keep text small */
+  font-weight: bold; /* Thicker font for better readability */
   line-height: 1.5; /* Improved line spacing for readability */
   transition: height 0.3s ease;
 }

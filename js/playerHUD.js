@@ -118,6 +118,8 @@ class PlayerHUD {
    * @param {Object} playerData - Object containing player information
    */
   update(playerData) {
+    console.log("playerHUD.update called with:", playerData);
+
     // Update DOM elements with new data
     document.getElementById('player-username').textContent = getPlayerUsername();
     document.getElementById('player-money').textContent = this.formatMoney(getPlayerMoney());
@@ -149,17 +151,13 @@ class PlayerHUD {
 
     // Update active bids information
     const activeBids = getActiveBids();
-    //TODO: Do I need to add this filter back in?
-    /*
-    // Filter out bids with status "old_winner" or "old_loser"
-      const activeBids = playerData.activeBids.filter(
-        bid => bid.status !== 'old_winner' && bid.status !== 'old_loser'
-    */
     const activeBidsCount = activeBids.length;
     const activeBidsAmount = activeBids.reduce((total, bid) => total + bid.amount, 0);
 
     document.getElementById('active-bids-count').textContent = activeBidsCount;
     document.getElementById('active-bids-amount').textContent = this.formatMoney(activeBidsAmount);
+
+    console.log("HUD updated successfully");
 
     // Add visual indicator if there are active bids
     const bidsSection = document.querySelector('.bids-section');

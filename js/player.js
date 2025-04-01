@@ -23,7 +23,9 @@ export function getPlayerIDFromStorage() {
 export function getPlayerData() {
     const playerID = getPlayerIDFromStorage();
     const gameState = getLocalGameState();
-    return gameState.players?.find(player => player.playerID === playerID) || null;
+    const player = gameState.players?.find(player => player.playerID === playerID) || null;
+    console.log("getPlayerData:", { playerID, player });
+    return player;
 }
 
 /**

@@ -93,7 +93,7 @@ export async function updateGameAndHUD() {
 
     // Get current player username and active bids
     const username = getPlayerUsername();
-    const activeBids = getActiveBids(); // Use getActiveBids here
+    const activeBids = getActiveBids();
 
     if (username && gameState.players) {
       // Find the player data by username
@@ -113,9 +113,13 @@ export async function updateGameAndHUD() {
           activeBids: activeBids
         };
 
-        // Update the HUD
+        console.log("Updating playerHUD with player data:", updatedPlayerState);
         playerHUD.update(updatedPlayerState);
+      } else {
+        console.error("Current player not found in game state");
       }
+    } else {
+      console.error("Username or players list is missing in game state");
     }
 
     // Re-render the game using the updated room data

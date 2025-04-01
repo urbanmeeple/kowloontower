@@ -6,6 +6,9 @@ if (!gameState.players) {
   gameState.players = [];
 }
 
+// Note: active_datetime in the players table is stored in UTC format.
+// Ensure to handle time zone conversions when comparing with local time.
+
 // Function to get the current game state
 export function getLocalGameState() {
   return gameState;

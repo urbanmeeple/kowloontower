@@ -281,6 +281,7 @@ function processBids() {
             }
 
             // Refund money to losing bidders
+            // TODO: Should a loser really get money back or has the player actually not got any money deducted (only reserved)?
             $refundStmt = $pdo->prepare("UPDATE players SET money = money + :amount, active_datetime = :active_datetime WHERE playerID = :playerID");
             $refundStmt->execute([
                 'amount' => $bid['amount'],

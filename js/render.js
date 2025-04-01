@@ -444,18 +444,18 @@ export function updatePlayerListWindow() {
   try {
     const gameState = getLocalGameState();
     const players = gameState.players || [];
-    const now = Date.now();
+    const now = new Date(); // Local time
     const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
     // Sort players: active first, then by money
     const sortedPlayers = players.sort((a, b) => {
-      const isActiveA = now - new Date(a.active_datetime).getTime() <= FIVE_MINUTES_MS;
-      const isActiveB = now - new Date(b.active_datetime).getTime() <= FIVE_MINUTES_MS;
+      const isActiveA = now - new Date(a.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS; // UTC handling
+      const isActiveB = now - new Date(b.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS; // UTC handling
       if (isActiveA !== isActiveB) return isActiveB - isActiveA; // Active players first
       return b.money - a.money; // Sort by money
     });
 
-    const activeCount = sortedPlayers.filter(player => now - new Date(player.active_datetime).getTime() <= FIVE_MINUTES_MS).length;
+    const activeCount = sortedPlayers.filter(player => now - new Date(player.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS).length;
 
     const content = document.querySelector('#player-list-window .floating-window-content');
     if (!content) return;
@@ -473,7 +473,7 @@ export function updatePlayerListWindow() {
         </thead>
         <tbody>
           ${sortedPlayers.slice(0, 20).map(player => {
-            const isActive = now - new Date(player.active_datetime).getTime() <= FIVE_MINUTES_MS;
+            const isActive = now - new Date(player.active_datetime + 'Z').getTime() <= FIVE_MINUTES_MS; // UTC handling
             const isCurrentPlayer = player.username === getPlayerState().username;
             const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
             return `

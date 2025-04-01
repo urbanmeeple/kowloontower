@@ -243,9 +243,10 @@ function processBids() {
 
         if ($winningBid) {
             // Deduct money from the winning player
-            $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = money - :amount WHERE playerID = :playerID");
+            $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = money - :amount, active_datetime = :active_datetime WHERE playerID = :playerID");
             $updateMoneyStmt->execute([
                 'amount' => $winningBid['amount'],
+                'active_datetime' => $currentUtcDateTime,
                 'playerID' => $winningBid['playerID']
             ]);
 
@@ -280,9 +281,10 @@ function processBids() {
             }
 
             // Refund money to losing bidders
-            $refundStmt = $pdo->prepare("UPDATE players SET money = money + :amount WHERE playerID = :playerID");
+            $refundStmt = $pdo->prepare("UPDATE players SET money = money + :amount, active_datetime = :active_datetime WHERE playerID = :playerID");
             $refundStmt->execute([
                 'amount' => $bid['amount'],
+                'active_datetime' => $currentUtcDateTime,
                 'playerID' => $bid['playerID']
             ]);
 
@@ -544,14 +546,14 @@ function updatePlayerDividends() {
         // Round to integer since the dividends column is INT
         $totalDividends = (int)round($totalDividends);
         
-        // Update player's dividends - FIRST STATEMENT
+        // Update player's dividends
         $updateDividendsStmt = $pdo->prepare("UPDATE players SET dividends = :dividends WHERE playerID = :playerID");
         $updateDividendsStmt->execute([
             'dividends' => $totalDividends,
             'playerID' => $playerID
         ]);
-        
-        // Update player's money balance - SECOND STATEMENT
+        // TODO: Make sure the dividends are actually added to the player's money
+        // Add the dividends to the player's money
         $updateMoneyStmt = $pdo->prepare("UPDATE players SET money = money + :amount WHERE playerID = :playerID");
         $updateMoneyStmt->execute([
             'amount' => $totalDividends,
@@ -573,6 +575,7 @@ function processRenovations() {
 
     $renovationCosts = ['small' => 100, 'big' => 500];
     $wearReduction = ['small' => 0.2, 'big' => 0.5];
+    $currentUtcDateTime = gmdate('Y-m-d H:i:s');
 
     // Fetch all "pending" renovations
     $stmt = $pdo->query("SELECT rq.queueID, rq.roomID, rq.playerID, rq.type, r.wear, p.money 
@@ -601,8 +604,8 @@ function processRenovations() {
 
             // Deduct money and reduce wear
             $newWear = max(0, $currentWear - $reduction);
-            $pdo->prepare("UPDATE players SET money = money - :cost WHERE playerID = :playerID")
-                ->execute(['cost' => $cost, 'playerID' => $playerID]);
+            $pdo->prepare("UPDATE players SET money = money - :cost, active_datetime = :active_datetime WHERE playerID = :playerID")
+                ->execute(['cost' => $cost, 'active_datetime' => $currentUtcDateTime, 'playerID' => $playerID]);
             $pdo->prepare("UPDATE rooms SET wear = :wear WHERE roomID = :roomID")
                 ->execute(['wear' => $newWear, 'roomID' => $roomID]);
 

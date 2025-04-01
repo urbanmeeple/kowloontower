@@ -187,6 +187,60 @@ input[type=range]::-moz-range-track {
   transition: color 0.3s ease;
 }
 
+/* Floating player list window styles */
+.floating-window {
+  position: fixed;
+  top: 10%;
+  left: 10px;
+  width: 250px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1000;
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  transition: height 0.3s ease;
+}
+
+.floating-window.minimized {
+  height: 30px;
+  overflow: hidden;
+}
+
+.floating-window-title {
+  background-color: #f4f4f4;
+  padding: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  border-bottom: 1px solid #ccc;
+}
+
+.floating-window-content {
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.player-list-header {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.player-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.player-list li {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
 /* Responsive adjustments for small screens */
 @media (max-width: 768px) {
   #player-hud {

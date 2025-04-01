@@ -1,5 +1,5 @@
 import { config } from './config.js.php';
-import { renderGame, resetBrightnessCycle } from './render.js';
+import { renderGame, resetBrightnessCycle, updatePlayerListWindow } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
 import { getPlayerState, fetchPlayerBids } from './player.js'; // Import function to refresh player bids
@@ -38,6 +38,9 @@ export async function fetchUpdatedGameState() {
       
       // Reset the brightness cycle to sync with the cron job and timer
       resetBrightnessCycle(remainingTime, config.cronJobInterval);
+
+      // Update player list window on timer reset
+      updatePlayerListWindow();
       
       console.log(`Timer reset with timestamp ${timestamp} and interval ${config.cronJobInterval}s, ${remainingTime}s remaining`);
     }
@@ -181,6 +184,9 @@ async function checkAndFetchCache() {
         // Reset both timer and brightness with same values
         playerHUD.resetTimer(data.lastCacheUpdate, config.cronJobInterval);
         resetBrightnessCycle(remainingTime, config.cronJobInterval);
+
+        // Update player list window on timer reset
+        updatePlayerListWindow();
       }
     }
   } catch (error) {

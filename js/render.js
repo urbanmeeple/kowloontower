@@ -393,3 +393,78 @@ export function resizeCanvas(gameCanvas) {
     console.error("Error in resizeCanvas:", error);
   }
 }
+
+/**
+ * Renders the floating player list window.
+ */
+export function renderPlayerListWindow() {
+  try {
+    const container = document.createElement('div');
+    container.id = 'player-list-window';
+    container.className = 'floating-window';
+
+    const titleBar = document.createElement('div');
+    titleBar.className = 'floating-window-title';
+    titleBar.textContent = 'Player List';
+    titleBar.addEventListener('click', () => {
+      container.classList.toggle('minimized');
+    });
+
+    const content = document.createElement('div');
+    content.className = 'floating-window-content';
+
+    container.appendChild(titleBar);
+    container.appendChild(content);
+    document.body.appendChild(container);
+
+    updatePlayerListWindow(); // Initial render
+  } catch (error) {
+    console.error("Error rendering player list window:", error);
+  }
+}
+
+/**
+ * Updates the content of the player list window.
+ */
+export function updatePlayerListWindow() {
+  try {
+    const gameState = getLocalGameState();
+    const players = gameState.players || [];
+    const now = Date.now();
+    const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+    // Sort players: active first, then by money
+    const sortedPlayers = players.sort((a, b) => {
+      const isActiveA = now - new Date(a.active_datetime).getTime() <= FIVE_MINUTES_MS;
+      const isActiveB = now - new Date(b.active_datetime).getTime() <= FIVE_MINUTES_MS;
+      if (isActiveA !== isActiveB) return isActiveB - isActiveA; // Active players first
+      return b.money - a.money; // Sort by money
+    });
+
+    const activeCount = sortedPlayers.filter(player => now - new Date(player.active_datetime).getTime() <= FIVE_MINUTES_MS).length;
+
+    const content = document.querySelector('#player-list-window .floating-window-content');
+    if (!content) return;
+
+    content.innerHTML = `
+      <div class="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
+      <ul class="player-list">
+        ${sortedPlayers.slice(0, 20).map(player => {
+          const isActive = now - new Date(player.active_datetime).getTime() <= FIVE_MINUTES_MS;
+          const isCurrentPlayer = player.username === getPlayerState().username;
+          const color = isCurrentPlayer ? 'green' : isActive ? 'black' : 'grey';
+          return `
+            <li style="color: ${color}">
+              <span class="player-username">${isCurrentPlayer ? 'You' : player.username}</span>
+              <span class="player-money">💰 ${player.money}</span>
+              <span class="player-rent">🏠 ${player.rent}</span>
+              <span class="player-dividends">📈 ${player.dividends}</span>
+            </li>
+          `;
+        }).join('')}
+      </ul>
+    `;
+  } catch (error) {
+    console.error("Error updating player list window:", error);
+  }
+}

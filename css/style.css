@@ -192,7 +192,7 @@ input[type=range]::-moz-range-track {
   position: absolute;
   top: calc(50px + var(--player-hud-height, 0px));
   left: 10px;
-  width: 320px;
+  width: 360px; /* Increased width to avoid scroll bar */
   background-color: #000000; /* Black background for retro feel */
   border: 2px solid #00FF00; /* Neon green border */
   border-radius: 8px;
@@ -201,8 +201,8 @@ input[type=range]::-moz-range-track {
   overflow-y: auto; /* Allow vertical scrolling if needed */
   z-index: 1000;
   font-family: 'Courier New', monospace; /* Retro gaming font */
-  font-size: 12px;
-  color: #00FF00; /* Neon green text */
+  font-size: 14px; /* Slightly larger font for better readability */
+  line-height: 1.5; /* Improved line spacing for readability */
   transition: height 0.3s ease;
 }
 
@@ -230,7 +230,7 @@ input[type=range]::-moz-range-track {
 }
 
 .floating-window-content {
-  padding: 10px;
+  padding: 15px; /* Increased padding for better spacing */
   max-height: 400px;
   overflow-y: auto;
 }
@@ -247,7 +247,7 @@ input[type=range]::-moz-range-track {
 
 .player-list th, .player-list td {
   text-align: left;
-  padding: 5px;
+  padding: 8px; /* Increased padding for better spacing */
   color: #00FF00; /* Neon green text */
   border-bottom: 1px solid #00FF00; /* Neon green row separator */
 }

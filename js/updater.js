@@ -2,7 +2,7 @@ import { config } from './config.js.php';
 import { renderGame, resetBrightnessCycle, updatePlayerListWindow } from './render.js';
 import { playerHUD } from './playerHUD.js';
 import { updateLocalGameState, getLocalGameState } from './state.js';
-import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends } from './player.js'; // Updated imports
+import { getPlayerUsername, fetchPlayerBids, getPlayerRent, getPlayerDividends, getActiveBids } from './player.js'; // Added getActiveBids
 import { roomPopup } from './roomPopup.js'; // Ensure roomPopup is imported
 import { showIncomeOverlay } from './infoOverlay.js'; // Import showIncomeOverlay
 
@@ -93,7 +93,7 @@ export async function updateGameAndHUD() {
 
     // Get current player username and active bids
     const username = getPlayerUsername();
-    const activeBids = getActiveBids();
+    const activeBids = getActiveBids(); // Use getActiveBids here
 
     if (username && gameState.players) {
       // Find the player data by username

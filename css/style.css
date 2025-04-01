@@ -50,16 +50,19 @@ canvas {
   left: 0;
   right: 0;
   height: auto; /* Allow dynamic height */
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
+  background-color: #000000; /* Black background for retro feel */
+  color: #00FF00; /* Neon green text */
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 20px;
+  padding: 10px 20px 30px; /* Added extra padding at the bottom */
   z-index: 100;
-  font-family: 'Arial', sans-serif;
-  font-size: 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  font-family: 'Verdana', sans-serif; /* Thicker and more readable font */
+  font-size: 12px; /* Keep text small */
+  font-weight: bold; /* Thicker font for better readability */
+  line-height: 1.5; /* Improved line spacing for readability */
+  box-shadow: 0 4px 8px rgba(0, 255, 0, 0.2); /* Green glow effect */
+  border-bottom: 2px solid #00FF00; /* Neon green border at the bottom */
 }
 
 .hud-section {
@@ -70,7 +73,7 @@ canvas {
 .label {
   font-weight: bold;
   margin-right: 8px;
-  color: #FFEB3B; /* Yellow-ish color for labels */
+  color: #FFFF00; /* Yellow color for labels */
 }
 
 .stock-item {

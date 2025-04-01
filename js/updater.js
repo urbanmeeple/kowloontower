@@ -17,6 +17,11 @@ export async function fetchUpdatedGameState() {
     if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
     const data = await response.json();
 
+    // Validate the fetched game state
+    if (!data.players) {
+      console.warn("Fetched game state is missing 'players' array.");
+    }
+
     // Update the local in-memory game state
     updateLocalGameState(data);
 
@@ -92,7 +97,7 @@ export async function updateGameAndHUD() {
     await fetchPlayerBids();
 
     // Get current player username and active bids
-    const username = getPlayerUsername();
+    const username = getPlayerUsernameFromStorage(); // Use username from local storage
     const activeBids = getActiveBids();
 
     if (username && gameState.players) {

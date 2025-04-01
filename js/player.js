@@ -9,23 +9,29 @@ let activeRenovations = [];
 let isNewPlayer = false;
 
 /**
- * Get the current player ID from localStorage.
- * @returns {string|null} The playerID or null if not found.
- */
-export function getPlayerIDFromStorage() {
-    return localStorage.getItem(config.player.storageKey);
-}
-
-/**
  * Get the current player's data from the local game state.
+ * Note: The local game state does not include playerID. Instead, we use the username to find the player.
  * @returns {Object|null} The player's data or null if not found.
  */
 export function getPlayerData() {
-    const playerID = getPlayerIDFromStorage();
+    const username = getPlayerUsernameFromStorage(); // Fetch username from local storage
     const gameState = getLocalGameState();
-    const player = gameState.players?.find(player => player.playerID === playerID) || null;
-    console.log("getPlayerData:", { playerID, player });
+    const player = gameState.players?.find(player => player.username === username) || null;
+
+    if (!player) {
+        console.warn(`Player data not found for username: ${username}`);
+    }
+
+    console.log("getPlayerData:", { username, player });
     return player;
+}
+
+/**
+ * Get the player's username from localStorage.
+ * @returns {string|null} The username or null if not found.
+ */
+export function getPlayerUsernameFromStorage() {
+    return localStorage.getItem(config.player.usernameKey);
 }
 
 /**

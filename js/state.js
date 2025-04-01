@@ -17,5 +17,14 @@ export function getLocalGameState() {
 // Function to update the game state
 export function updateLocalGameState(newState) {
   gameState = { ...newState }; // Replace the current state with the new state
+
+  // Ensure players array exists in the game state
+  if (!gameState.players) {
+    gameState.players = [];
+    console.warn("Game state is missing 'players' array. Initialized as an empty array.");
+  }
+
+  // Note: The players array in the local game state does not include playerID.
+  // Player data must be accessed using the username, which is unique.
   console.log("Game state updated in memory:", gameState);
 }

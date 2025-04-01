@@ -17,7 +17,7 @@ export function showIncomeOverlay(rent, dividends) {
 
   // Rent income element
   const rentElement = document.createElement('div');
-  rentElement.textContent = `+${rent}`;
+  rentElement.textContent = `+${rent}$`; // Add dollar sign
   rentElement.style.color = '#4CAF50'; // Green color
   rentElement.style.fontSize = '48px';
   rentElement.style.fontWeight = 'bold';
@@ -25,7 +25,7 @@ export function showIncomeOverlay(rent, dividends) {
 
   // Dividend income element
   const dividendsElement = document.createElement('div');
-  dividendsElement.textContent = `+${dividends}`;
+  dividendsElement.textContent = `+${dividends}$`; // Add dollar sign
   dividendsElement.style.color = '#4CAF50'; // Green color
   dividendsElement.style.fontSize = '48px';
   dividendsElement.style.fontWeight = 'bold';
@@ -36,9 +36,9 @@ export function showIncomeOverlay(rent, dividends) {
 
   console.log('Overlay container appended to document body:', overlayContainer); // Debug log
 
-  // Show for 2 seconds, then fade out over 2 seconds
+  // Show for 4 seconds, then fade out over 4 seconds
   setTimeout(() => {
-    overlayContainer.style.transition = 'opacity 2s';
+    overlayContainer.style.transition = 'opacity 4s';
     overlayContainer.style.opacity = '0';
     console.log('Overlay fading out'); // Debug log
     setTimeout(() => {
@@ -46,6 +46,6 @@ export function showIncomeOverlay(rent, dividends) {
         overlayContainer.parentNode.removeChild(overlayContainer);
         console.log('Overlay removed from DOM'); // Debug log
       }
-    }, 2000);
-  }, 2000);
+    }, 4000); // Fade-out duration
+  }, 4000); // Display duration
 }

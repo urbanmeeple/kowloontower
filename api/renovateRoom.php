@@ -34,8 +34,8 @@ try {
     $playerID = $room['playerID'];
     $currentMoney = $room['money'];
 
-    // Define renovation costs
-    $renovationCosts = ['small' => 100, 'big' => 500, 'amazing' => 1000];
+    // Fetch renovation costs from config
+    $renovationCosts = $clientConfig['renovationCosts'];
 
     if (!isset($renovationCosts[$type])) {
         throw new Exception('Invalid renovation type.');

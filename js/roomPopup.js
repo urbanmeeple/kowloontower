@@ -2,6 +2,7 @@ import { getPlayerState, placeBid, getAvailableMoney, removeBid } from './player
 import { renderGame } from './render.js';
 import { getLocalGameState } from './state.js';
 import { isTimerAtZero } from './playerHUD.js'; // Import isTimerAtZero function
+import { config } from './config.js.php';
 
 class RoomPopup {
     constructor() {
@@ -433,7 +434,8 @@ class RoomPopup {
 
         const createButton = (label, type) => {
             const button = document.createElement('button');
-            button.textContent = label;
+            const cost = config.renovationCosts[type]; // Fetch cost from config
+            button.textContent = `${label} (${this.formatMoney(cost)})`; // Show cost on button
             button.style.margin = '5px';
             button.style.padding = '10px';
             button.style.backgroundColor = '#4CAF50';

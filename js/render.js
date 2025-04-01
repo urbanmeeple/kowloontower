@@ -467,12 +467,14 @@ export function updatePlayerListWindow() {
     const playerUsername = getPlayerUsername();
 
     content.innerHTML = `
-      <div class="player-list-header">Players active/total: ${activeCount}/${players.length}</div>
+      <div class="player-list-header" style="color: #00FF00; font-family: 'Verdana', sans-serif; font-size: 12px; font-weight: bold;">
+        Players active/total: ${activeCount}/${players.length}
+      </div>
       <table class="player-list">
         <thead>
           <tr>
             <th>Player</th>
-            <th>Money</th> <!-- Move Money column here -->
+            <th>Money</th>
             <th>Rent</th>
             <th>Dividends</th>
           </tr>
@@ -485,7 +487,7 @@ export function updatePlayerListWindow() {
             return `
               <tr style="color: ${color}">
                 <td class="player-username">${isCurrentPlayer ? 'You' : player.username || 'Unknown'}</td>
-                <td class="player-money">${formatMoney(player.money || 0)}</td> <!-- Display formatted money -->
+                <td class="player-money">${formatMoney(player.money || 0)}</td>
                 <td class="player-rent">${player.rent || 0}</td>
                 <td class="player-dividends">${player.dividends || 0}</td>
               </tr>

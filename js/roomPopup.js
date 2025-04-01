@@ -436,13 +436,33 @@ class RoomPopup {
         title.textContent = 'Renovate';
         renovationSection.appendChild(title);
 
+        // Move wear level information here
+        const wear = document.createElement('p');
+        const wearValue = parseFloat(roomData.wear).toFixed(2); // Format to 2 decimal places
+        wear.innerHTML = `Wear Level: <span>${wearValue}</span>`;
+        wear.style.marginBottom = '10px';
+
+        // Set color based on wear value thresholds
+        const wearSpan = wear.querySelector('span');
+        if (roomData.wear < 0.4) {
+            wearSpan.style.color = '#4CAF50'; // Green for low wear
+        } else if (roomData.wear < 0.6) {
+            wearSpan.style.color = '#FFEB3B'; // Yellow for medium wear
+        } else if (roomData.wear < 0.9) {
+            wearSpan.style.color = '#FF9800'; // Orange for high wear
+        } else {
+            wearSpan.style.color = '#F44336'; // Red for critical wear
+        }
+
+        renovationSection.appendChild(wear); // Append wear level info below "Renovate" heading
+
         const createButton = (label, type) => {
             const cost = config.renovationCosts[type].cost; // Fetch cost from config
             const wearReduction = config.renovationCosts[type].wearReduction; // Fetch wear reduction from config
             const button = document.createElement('button');
-            button.dataset.originalText = `${label} ${this.formatMoney(cost)} -${wearReduction}`;
+            button.dataset.originalText = `${label} <span style="font-size: 60%;">${this.formatMoney(cost)} -${wearReduction} wear</span>`;
             button.dataset.originalColor = '#4CAF50'; // Default green color
-            button.textContent = button.dataset.originalText;
+            button.innerHTML = button.dataset.originalText; // Use innerHTML to apply smaller font size
             Object.assign(button.style, {
                 margin: '5px',
                 padding: '10px',
@@ -611,26 +631,6 @@ class RoomPopup {
                 ownerInfo.style.marginBottom = '10px';
                 this.popupContainer.appendChild(ownerInfo);
             }
-
-            // Wear level with formatting and color coding
-            const wear = document.createElement('p');
-            const wearValue = parseFloat(roomData.wear).toFixed(2); // Format to 2 decimal places
-            wear.innerHTML = `Wear Level: <span>${wearValue}</span>`;
-            wear.style.marginBottom = '10px';
-            
-            // Set color based on wear value thresholds
-            const wearSpan = wear.querySelector('span');
-            if (roomData.wear < 0.4) {
-                wearSpan.style.color = '#4CAF50'; // Green for low wear
-            } else if (roomData.wear < 0.6) {
-                wearSpan.style.color = '#FFEB3B'; // Yellow for medium wear
-            } else if (roomData.wear < 0.9) {
-                wearSpan.style.color = '#FF9800'; // Orange for high wear
-            } else {
-                wearSpan.style.color = '#F44336'; // Red for critical wear
-            }
-            
-            this.popupContainer.appendChild(wear);
 
             // Room rent
             const roomRent = document.createElement('p');

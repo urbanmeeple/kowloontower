@@ -1,7 +1,7 @@
 // This file contains functions to manage the player including fetching, creation, and initialization.
 import { config } from './config.js.php';
 import { playerHUD } from './playerHUD.js';
-import { getLocalGameState } from './state.js';
+import { getLocalGameState, addPlayerToLocalGameState } from './state.js';
 
 // Local variables for tracking player-specific data
 let activeBids = [];
@@ -458,6 +458,7 @@ export async function createNewPlayer() {
             setIsNewPlayer(true);
             savePlayerIDToStorage(data.player.playerID);
             savePlayerUsernameToStorage(data.player.username);
+            addPlayerToLocalGameState(data.player);
             playerHUD.update();
             showWelcomeMessage(true);
             return true;

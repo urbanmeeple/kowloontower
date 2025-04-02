@@ -28,3 +28,18 @@ export function updateLocalGameState(newState) {
   // Player data must be accessed using the username, which is unique.
   console.log("Game state updated in memory:", gameState);
 }
+
+/**
+ * Add a new player to the local game state.
+ * @param {Object} newPlayer - The player object to add.
+ */
+export function addPlayerToLocalGameState(newPlayer) {
+  if (!gameState.players) {
+    gameState.players = [];
+    console.warn("Game state is missing 'players' array. Initialized as an empty array.");
+  }
+
+  // Add the new player to the players array
+  gameState.players.push(newPlayer);
+  console.log("New player added to game state:", newPlayer);
+}

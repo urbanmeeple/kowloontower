@@ -1,7 +1,7 @@
 // This file contains functions to manage the player including fetching, creation, and initialization.
 import { config } from './config.js.php';
 import { playerHUD } from './playerHUD.js';
-import { getLocalGameState } from './state.js';
+import { getLocalGameState, fetchUpdatedGameState } from './state.js';
 
 // Local variables for tracking player-specific data
 let activeBids = [];
@@ -533,5 +533,13 @@ export async function initializePlayer() {
         console.log('No player ID in storage, creating new player');
         await createNewPlayer();
     }
+
+    // Fetch updated game state after creating a new player
+    console.log('Fetching updated game state after player initialization...');
+    const gameStateUpdated = await fetchUpdatedGameState();
+    if (!gameStateUpdated) {
+        console.error('Failed to fetch updated game state after player initialization');
+    }
+
     console.log('Player initialized:', getPlayerData());
 }

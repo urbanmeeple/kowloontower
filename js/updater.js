@@ -25,6 +25,13 @@ export async function fetchUpdatedGameState() {
     // Update the local in-memory game state
     updateLocalGameState(data);
 
+    // Ensure the player data is available before proceeding
+    const username = getPlayerUsernameFromStorage();
+    if (!username || !data.players?.some(player => player.username === username)) {
+      console.warn("Player data not found in updated game state. Retrying...");
+      return false; // Indicate failure to allow retry
+    }
+
     // Update the game and HUD after the local game state is updated
     updateGameAndHUD();
     

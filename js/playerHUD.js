@@ -128,8 +128,15 @@ class PlayerHUD {
   update() {
     console.log("playerHUD.update called");
 
+    // Ensure player data is available before updating
+    const username = getPlayerUsername();
+    if (!username) {
+        console.warn("Player username not available. Skipping HUD update.");
+        return;
+    }
+
     // Update DOM elements with new data
-    document.getElementById('player-username').textContent = getPlayerUsername();
+    document.getElementById('player-username').textContent = username;
     document.getElementById('player-money').textContent = this.formatMoney(getPlayerMoney());
     document.getElementById('player-rent').textContent = this.formatMoney(getPlayerRent());
     document.getElementById('player-dividends').textContent = this.formatMoney(getPlayerDividends());

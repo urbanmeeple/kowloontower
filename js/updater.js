@@ -34,7 +34,7 @@ export async function fetchUpdatedGameState() {
 
     // Update the game and HUD after the local game state is updated
     updateGameAndHUD();
-    
+
     // Get the current cache timestamp and store it
     const timestamp = await getCacheLastUpdate();
     if (timestamp) {

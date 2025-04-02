@@ -534,10 +534,25 @@ export async function initializePlayer() {
         await createNewPlayer();
     }
 
-    // Fetch updated game state after creating a new player
+    // Retry fetching the updated game state until the new player data is available
     console.log('Fetching updated game state after player initialization...');
-    const gameStateUpdated = await fetchUpdatedGameState();
-    if (!gameStateUpdated) {
+    let retries = 5; // Maximum number of retries
+    while (retries > 0) {
+        const gameStateUpdated = await fetchUpdatedGameState();
+        if (gameStateUpdated) {
+            const username = getPlayerUsernameFromStorage();
+            const playerData = getPlayerData();
+            if (playerData && playerData.username === username) {
+                console.log('Player data successfully loaded into game state:', playerData);
+                break;
+            }
+        }
+        retries--;
+        console.log(`Retrying fetchUpdatedGameState... (${5 - retries}/5)`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+    }
+
+    if (retries === 0) {
         console.error('Failed to fetch updated game state after player initialization');
     }
 

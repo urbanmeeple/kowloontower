@@ -28,3 +28,5 @@ export function updateLocalGameState(newState) {
   // Player data must be accessed using the username, which is unique.
   console.log("Game state updated in memory:", gameState);
 }
+
+export { fetchUpdatedGameState } from './updater.js';

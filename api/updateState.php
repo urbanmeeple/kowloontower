@@ -620,7 +620,7 @@ function processRenovations() {
 function increaseRoomWear() {
     global $pdo, $logFile;
     
-    $baseWearIncrease = 0.005; // Base wear increase per update, standard is 0.02
+    $baseWearIncrease = 0.0005; // Base wear increase per update, standard is 0.02
     $minFactor = 0.5; // -50% of base
     $maxFactor = 1.5; // +50% of base
     $wearLimit = 1.0; // Maximum wear value allowed
